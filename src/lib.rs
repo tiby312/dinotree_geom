@@ -5,6 +5,45 @@ extern crate num;
 use num_traits::Num;
 
 
+pub trait GravityTrait{
+    type N:Num+PartialOrd+Copy;
+    fn pos(&self)->[Self::N;2];
+    fn mass(&self)->Self::N;
+    fn apply_force(&mut self,[Self::N;2]);
+}
+
+//Returns the force to be exerted to the first object.
+//The force to the second object can be retrieved simply by negating the first.
+pub fn gravitate<N:Num+PartialOrd+Copy,T:GravityTrait<N=N>,T2:GravityTrait<N=N>>(a:&mut T,b:&mut T2,min:N,gravity_const:N,sqrt:impl Fn(N)->N)->Result<(),ErrTooClose>{
+    let p1=a.pos();
+    let p2=b.pos();
+    let m1=a.mass();
+    let m2=b.mass();
+
+    let diffx=p2[0]-p1[0];
+    let diffy=p2[1]-p1[1];
+    let dis_sqr=diffx*diffx+diffy*diffy;
+
+
+    if dis_sqr>min{
+        
+        //const GRAVITY_CONSTANT:f64=0.004;
+
+        //newtons law of gravitation (modified for 2d??? divide by len instead of sqr)
+        let force=gravity_const*(m1*m2)/dis_sqr;
+
+        let dis=sqrt(dis_sqr);
+        let finalx=diffx*(force/dis);
+        let finaly=diffy*(force/dis);
+        
+        a.apply_force([finalx,finaly]);
+        b.apply_force([N::zero()-finalx,N::zero()-finaly]);
+        Ok(())
+    }else{
+        Err(ErrTooClose)
+    }
+}
+
 #[derive(Debug,Copy,Clone)]
 pub struct Ray<N>{
     pub point:[N;2],
@@ -24,6 +63,64 @@ fn derive_center<N:Num+Copy>(a:&axgeom::Rect<N>)->[N;2]{
 
 fn dot<N:Num+Copy>(a:[N;2],b:[N;2])->N{
    a[0]*b[0]+a[1]*b[1] 
+}
+
+
+pub trait RepelTrait{
+    type N:Num+Copy+PartialOrd;
+    fn pos(&self)->[Self::N;2];
+    fn add_force(&mut self,force:[Self::N;2]);
+}
+
+pub struct ErrTooClose;
+pub fn repel_one<B:RepelTrait>(bot1:&mut B,pos:[B::N;2],closest:B::N,mag:B::N,sqrt:impl Fn(B::N)->B::N)->Result<(),ErrTooClose>{
+    let a=bot1;
+
+    let pos1=a.pos();
+    let pos2=pos;
+    let diff=[pos2[0]-pos1[0],pos2[1]-pos1[1]];
+
+    let len_sqr=diff[0]*diff[0]+diff[1]*diff[1];
+
+    if len_sqr<closest{
+        return Err(ErrTooClose)
+    }
+
+    let len=sqrt(len_sqr);
+    let mag=mag/len;
+
+    let norm=[diff[0]/len,diff[1]/len];
+    
+    let zero=<B::N as num_traits::Zero>::zero();
+    a.add_force([zero-norm[0]*mag,zero-norm[1]*mag]);
+    //b.add_force([norm[0]*mag,norm[1]*mag]);
+    
+    return Ok(())
+}
+pub fn repel<B:RepelTrait>(bot1:&mut B,bot2:&mut B,closest:B::N,mag:B::N,sqrt:impl Fn(B::N)->B::N)->Result<(),ErrTooClose>{
+    let a=bot1;
+    let b=bot2;
+
+    let pos1=a.pos();
+    let pos2=b.pos();
+    let diff=[pos2[0]-pos1[0],pos2[1]-pos1[1]];
+
+    let len_sqr=diff[0]*diff[0]+diff[1]*diff[1];
+
+    if len_sqr<closest{
+        return Err(ErrTooClose)
+    }
+
+    let len=sqrt(len_sqr);
+    let mag=mag/len;
+
+    let norm=[diff[0]/len,diff[1]/len];
+    
+    let zero=<B::N as num_traits::Zero>::zero();
+    a.add_force([zero-norm[0]*mag,zero-norm[1]*mag]);
+    b.add_force([norm[0]*mag,norm[1]*mag]);
+    
+    return Ok(())
 }
     
 
@@ -55,8 +152,8 @@ pub enum WallSide{
 
 pub fn collide_with_rect<N:Num+Copy+Ord>(botr:&axgeom::Rect<N>,wallr:&axgeom::Rect<N>)->WallSide{
 
-    let wallx=wallr.as_axis().get(axgeom::XAXISS);
-    let wally=wallr.as_axis().get(axgeom::YAXISS);
+    let wallx=wallr.get_range(axgeom::XAXISS);
+    let wally=wallr.get_range(axgeom::YAXISS);
 
     
     let center_bot=derive_center(botr);
@@ -118,7 +215,7 @@ pub fn collide_with_rect<N:Num+Copy+Ord>(botr:&axgeom::Rect<N>,wallr:&axgeom::Re
     }
 }
 
-pub fn distance_squared_point_to_rect<N:Num+Copy+Ord>(point:[N;2],rect:&axgeom::Rect<N>)->N{
+pub fn distance_squared_point_to_rect<N:Num+Copy+PartialOrd>(point:[N;2],rect:&axgeom::Rect<N>)->N{
     let (px,py)=(point[0],point[1]);
 
     let ((a,b),(c,d))=rect.get();
