@@ -215,7 +215,16 @@ pub fn collide_with_rect<N:Num+Copy+Ord>(botr:&axgeom::Rect<N>,wallr:&axgeom::Re
     }
 }
 
-pub fn distance_squared_point_to_rect<N:Num+Copy+PartialOrd>(point:[N;2],rect:&axgeom::Rect<N>)->N{
+
+pub fn distance_squred_point<N:Num+Copy+PartialOrd>(point1:[N;2],point2:[N;2])->N{
+    let x=point2[0]-point1[0];
+    let y=point2[1]-point1[1];
+    x*x+y*y
+}
+
+///Returns the squred distance from a point to a rectangle if the point is outisde the rectangle.
+///If the point is insert the rectangle, it will return None.
+pub fn distance_squared_point_to_rect<N:Num+Copy+PartialOrd>(point:[N;2],rect:&axgeom::Rect<N>)->Option<N>{
     let (px,py)=(point[0],point[1]);
 
     let ((a,b),(c,d))=rect.get();
@@ -223,11 +232,20 @@ pub fn distance_squared_point_to_rect<N:Num+Copy+PartialOrd>(point:[N;2],rect:&a
     let xx=num::clamp(px,a,b);
     let yy=num::clamp(py,c,d);
 
-    (xx-px)*(xx-px) + (yy-py)*(yy-py)
+    
+    let dis=(xx-px)*(xx-px) + (yy-py)*(yy-py);
+
+    //Then the point must be insert the rect.
+    //In this case, lets return something negative.
+    if xx>a && xx<b && yy>c && yy< d{
+        None
+    }else{
+        Some(dis)
+    }
 }
 
 
-
+/*
 pub fn split_ray<N:Num+Copy+Ord,A:axgeom::AxisTrait>(axis:A,ray:&Ray<N>,fo:N)->Option<(Ray<N>,Ray<N>)>{
     let two=N::one()+N::one();
 
@@ -278,7 +296,33 @@ pub fn split_ray<N:Num+Copy+Ord,A:axgeom::AxisTrait>(axis:A,ray:&Ray<N>,fo:N)->O
     Some((ray_closer,ray_new))
     
 }
+*/
 
+/*
+///Returns a lower and upper bound around the intersection y value.
+pub fn compute_intersection_range<N:Num+Copy+Ord,A:axgeom::AxisTrait>(ray:&Ray<N>,axis:A,line:N)->Option<N>
+{
+    let o1=compute_intersection_tvalue(axis,&ray,line).map(|tvalue|{
+        convert_tvalue_to_point(axis.next(),&ray,tvalue)
+    });
+    
+    match o1{
+        Some(dis)=>{
+            let [ray_origin_x,ray_origin_y,ray_end_y]=if axis.is_xaxis(){
+                [ray.point[0],ray.point[1],ray.point[1]+ray.tlen*ray.dir[1]]
+            }else{
+                [ray.point[1],ray.point[0],ray.point[0]+ray.tlen*ray.dir[0]]
+            };
+            Some(ray_end_y)
+        },
+        None=>{
+            None
+        }
+    }
+}
+*/
+
+/*
 //First option is min, second is max
 pub fn compute_intersection_range<N:Num+Copy+Ord,A:axgeom::AxisTrait>(ray:&Ray<N>,axis:A,fat_line:[N;2])->Option<(N,N)>
 {
@@ -325,6 +369,7 @@ pub fn compute_intersection_range<N:Num+Copy+Ord,A:axgeom::AxisTrait>(ray:&Ray<N
         }
     }
 }
+*/
   
 
 pub fn convert_tvalue_to_point<N:Num+Copy+Ord,A:axgeom::AxisTrait>(axis:A,ray:&Ray<N>,tvalue:N)->N{
@@ -335,6 +380,8 @@ pub fn convert_tvalue_to_point<N:Num+Copy+Ord,A:axgeom::AxisTrait>(axis:A,ray:&R
         ray.dir[1]*tvalue+ray.point[1]
     }
 }
+
+
 //Given a ray and an axis aligned line, return the tvalue,and x coordinate
 pub fn compute_intersection_tvalue<N:Num+Copy+Ord,A:axgeom::AxisTrait>(axis:A,ray:&Ray<N>,line:N)->Option<(N)>{
     if axis.is_xaxis(){
@@ -372,9 +419,18 @@ pub fn compute_intersection_tvalue<N:Num+Copy+Ord,A:axgeom::AxisTrait>(axis:A,ra
     }
 }
 
-pub fn intersects_box<N:Num+Copy+Ord>(point:[N;2],dir:[N;2],matt:N,rect:&axgeom::Rect<N>)->Option<N>{
+#[derive(Copy,Clone,Debug)]
+pub enum IntersectsBotResult<N>{
+    Hit(N),
+    Inside,
+    NoHit
+}
+
+
+pub fn intersects_box<N:Num+Copy+Ord>(point:[N;2],dir:[N;2],matt:N,rect:&axgeom::Rect<N>)->IntersectsBotResult<N>{
     let ((x1,x2),(y1,y2))=rect.get();
 
+    //val=t*m+y
     let (tmin,tlen)=if dir[0]!=N::zero(){
         let tx1=(x1-point[0])/dir[0];
         let tx2=(x2-point[0])/dir[0];
@@ -383,7 +439,7 @@ pub fn intersects_box<N:Num+Copy+Ord>(point:[N;2],dir:[N;2],matt:N,rect:&axgeom:
         tx1.max(tx2))
     }else{
         if point[0] < x1 || point[0] > x2 {
-            return None; // parallel AND outside box : no intersection possible
+            return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
         }else{
             (N::zero(),matt)
         }
@@ -397,16 +453,30 @@ pub fn intersects_box<N:Num+Copy+Ord>(point:[N;2],dir:[N;2],matt:N,rect:&axgeom:
         tlen.min(ty1.max(ty2)))
     }else{
         if point[1] < y1 || point[1] > y2 {
-            return None; // parallel AND outside box : no intersection possible
+            return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
         }else{
             (tmin,tlen)
         }
     };
 
-    if tlen>=tmin && tlen>=N::zero() && tmin<=matt{
-        return Some(tmin.max(N::zero()));
+    //TODO figure out inequalities!
+    if tmin<=N::zero() && tlen>=N::zero(){
+        return IntersectsBotResult::Inside;
+    }
+
+    if tmin<=N::zero() && tlen<N::zero(){
+        return IntersectsBotResult::NoHit;
+    }
+
+    if tmin>matt{
+        return IntersectsBotResult::NoHit;
+    }
+    
+
+    if tlen>=tmin{
+        return IntersectsBotResult::Hit(tmin);
     }else{
-        return None;
+        return IntersectsBotResult::NoHit;
     }
                 
 }
