@@ -1,3 +1,8 @@
+//!
+//! Provides some useful 2d geometry functions.
+//!
+//!
+
 extern crate num_traits;
 extern crate axgeom;
 extern crate num;
