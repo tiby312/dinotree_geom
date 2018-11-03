@@ -6,4 +6,4 @@ authors = ["Ken Reed <kenakioreed@gmail.com>"]
 [dependencies]
 num = "0.1.42"
 num-traits = "0.2"
-axgeom = {git="https://github.com/tiby312/axgeom.git"}
+axgeom = "1.0.1"
