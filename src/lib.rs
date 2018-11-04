@@ -1,7 +1,7 @@
 //!
 //! Provides some useful 2d geometry functions.
 //!
-//!
+//! Why the name? Not sure. Duck Duck Goose.
 
 extern crate num_traits;
 extern crate axgeom;
@@ -32,8 +32,6 @@ pub fn gravitate<N:Num+PartialOrd+Copy,T:GravityTrait<N=N>,T2:GravityTrait<N=N>>
 
     if dis_sqr>min{
         
-        //const GRAVITY_CONSTANT:f64=0.004;
-
         //newtons law of gravitation (modified for 2d??? divide by len instead of sqr)
         let force=gravity_const*(m1*m2)/dis_sqr;
 

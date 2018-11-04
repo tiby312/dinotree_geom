@@ -1,7 +1,13 @@
 [package]
-name = "dinotree_geom"
+name = "duckduckgeo"
 version = "0.1.0"
 authors = ["Ken Reed <kenakioreed@gmail.com>"]
+description = "2d geom library"
+license = "MIT/Apache-2.0"
+repository = "https://github.com/tiby312/duckduckgeo"
+keywords = ["geometry"]
+readme = "readme.md"
+
 
 [dependencies]
 num = "0.1.42"
