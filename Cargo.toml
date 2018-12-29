@@ -1,15 +1,17 @@
 [package]
 name = "duckduckgeo"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Ken Reed <kenakioreed@gmail.com>"]
 description = "2d geom library"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/tiby312/duckduckgeo"
 keywords = ["geometry"]
 readme = "readme.md"
+edition = "2018"
 
 
 [dependencies]
 num = "0.1.42"
 num-traits = "0.2"
-axgeom = "1.0.1"
+compt = "1.4.0"
+axgeom = "1.0.5"
