@@ -9,6 +9,10 @@ extern crate num_traits;
 
 use num_traits::Num;
 
+pub mod vec2f32;
+pub mod vec2f64;
+pub mod bot;
+
 ///Passed to gravitate.
 pub trait GravityTrait {
     type N: Num + PartialOrd + Copy;
@@ -137,6 +141,27 @@ pub fn repel<B: RepelTrait>(
 
     Ok(())
 }
+
+
+pub fn stop_wall<N:Num+Copy+PartialOrd>(pos:&mut [N;2],dim:[N;2]){
+    let start = [N::zero();2];
+
+    if pos[0] > dim[0]{
+        pos[0] = dim[0];
+    }
+    if pos[0] < start[0]{
+        pos[0]=start[0];
+    }
+
+
+    if pos[1] > dim[1]{
+        pos[1] = dim[1];
+    }
+    if pos[1] < start[1]{
+        pos[1]=start[1];
+    }
+}
+
 
 ///Wraps the first point around the rectangle made between (0,0) and dim.
 pub fn wrap_position<N: Num + Copy + PartialOrd>(a: &mut [N; 2], dim: [N; 2]) {
