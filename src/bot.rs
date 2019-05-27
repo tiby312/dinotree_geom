@@ -179,7 +179,7 @@ impl BotProp{
 
 
 
-fn convert_to_nan(r:Rect<f32>)->Rect<NotNaN<f32>>{
+pub fn convert_to_nan(r:Rect<f32>)->Rect<NotNaN<f32>>{
 
     let a=r.get_range(axgeom::XAXISS);
     let b=r.get_range(axgeom::YAXISS);
@@ -191,7 +191,7 @@ fn convert_to_nan(r:Rect<f32>)->Rect<NotNaN<f32>>{
         NotNaN::new(b.right).unwrap()
         )
 }
-fn convert_from_nan(r:Rect<NotNaN<f32>>)->Rect<f32>{
+pub fn convert_from_nan(r:Rect<NotNaN<f32>>)->Rect<f32>{
     unsafe{std::mem::transmute(r)}
 }
 
