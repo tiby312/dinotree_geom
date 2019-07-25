@@ -17,11 +17,7 @@ pub struct BotSceneBuilder{
 }
 impl BotSceneBuilder{
     pub fn new(num:usize)->BotSceneBuilder{
-      
         BotSceneBuilder{grow:0.2,radius:17.0,num,bot_radius:5.0}
-        //radius= 5.0,5.0
-        //let s=dists::spiral::Spiral::new([400.0,400.0],17.0,0.2);
-          
     }
 
     pub fn with_grow(&mut self,grow:f64)->&mut Self{
@@ -179,62 +175,33 @@ impl BotProp{
 
 
 
-pub fn convert_to_nan(r:Rect<f32>)->Rect<NotNaN<f32>>{
-
-    let a=r.get_range(axgeom::XAXISS);
-    let b=r.get_range(axgeom::YAXISS);
-    
-    Rect::new(
-        NotNaN::new(a.left).unwrap(),
-        NotNaN::new(a.right).unwrap(),
-        NotNaN::new(b.left).unwrap(),
-        NotNaN::new(b.right).unwrap()
-        )
-}
-pub fn convert_from_nan(r:Rect<NotNaN<f32>>)->Rect<f32>{
-    unsafe{std::mem::transmute(r)}
-}
-
-
-fn from_point(point:Vec2,radius:f32)->Rect<f32>{
-    let r=radius;
-    let point=point.0;
-    Rect::new(point[0]-r,point[0]+r,point[1]-r,point[1]+r)
-}
-
 #[derive(Copy,Clone,Debug)]
 pub struct Bot{
     pub pos: Vec2,
     pub vel: Vec2,
     pub acc: Vec2,
 }
+
+impl crate::BorderCollideTrait for Bot{
+    type N=f32;
+    fn pos_vel_mut(&mut self)->(&mut [f32;2],&mut [f32;2]){
+        (&mut self.pos.0,&mut self.vel.0)
+    }
+}
 impl Bot{
     pub fn apply(&mut self,bot:&Bot){
         self.acc=bot.acc;
     }
+
     pub fn create_bbox(&self,bot_scene:&BotProp)->Rect<f32>{
         let p=self.pos.0;
         let r=bot_scene.radius.dis();
         Rect::new(p[0]-r,p[0]+r,p[1]-r,p[1]+r)
-        //convert_to_nan(r)
-    }
-    pub fn create_bbox_nan(&self,bot_scene:&BotProp)->Rect<NotNaN<f32>>{
-        convert_to_nan(self.create_bbox(bot_scene))
     }
 
-    /*
-    pub fn create_loose_bbox(&self,radius:f32)->Rect<NotNaN<f32>>{
-        
-        let mut r=convert_to_nan(from_point(self.pos,radius));
-
-
-        let projected_pos=self.pos+self.vel;
-        let r2=convert_to_nan(from_point(projected_pos,radius));
-
-        r.grow_to_fit(&r2);
-        r
+    pub fn create_bbox_nan(&self,bot_scene:&BotProp)->Rect<NotNan<f32>>{
+        self.create_bbox(bot_scene).into_notnan().unwrap()
     }
-    */
 
     pub fn new(pos:Vec2)->Bot{
         let vel=Vec2([0.0;2]);
@@ -363,3 +330,109 @@ impl Dist {
 }
 
 
+use rand;
+use rand::{SeedableRng, StdRng};
+use rand::distributions::{IndependentSample, Range};
+
+
+
+pub struct RangeGenIterf64{
+    max:usize,
+    counter:usize,
+    rng:rand::StdRng,
+    xvaluegen:UniformRangeGenerator,
+    yvaluegen:UniformRangeGenerator,
+    radiusgen:UniformRangeGenerator,
+    velocity_dir:UniformRangeGenerator,
+    velocity_mag:UniformRangeGenerator
+}
+
+pub struct Retf64{
+    pub id:usize,
+    pub pos:[f64;2],
+    pub vel:[f64;2],
+    pub radius:[f64;2],
+}
+
+pub struct RetInteger{
+    pub id:usize,
+    pub pos:[isize;2],
+    pub vel:[isize;2],
+    pub radius:[isize;2],
+}
+impl Retf64{
+    pub fn into_isize(self)->RetInteger{
+        let id=self.id;
+        let pos=[self.pos[0] as isize,self.pos[1] as isize];
+        let vel=[self.vel[0] as isize,self.vel[1] as isize];
+        let radius=[self.radius[0] as isize,self.radius[1] as isize];
+        RetInteger{id,pos,vel,radius}
+    }
+}
+impl std::iter::FusedIterator for RangeGenIterf64{}
+impl ExactSizeIterator for RangeGenIterf64{}
+impl Iterator for RangeGenIterf64{
+    type Item=Retf64;
+    fn size_hint(&self)->(usize,Option<usize>){
+        (self.max,Some(self.max))
+    }
+    fn next(&mut self)->Option<Self::Item>{  
+
+        if self.counter==self.max{
+            return None
+        }
+
+        let rng=&mut self.rng;  
+        let px=self.xvaluegen.get(rng) as f64;
+        let py=self.yvaluegen.get(rng) as f64;
+        let rx=self.radiusgen.get(rng) as f64;
+        let ry=self.radiusgen.get(rng) as f64;
+
+        let (velx,vely)={
+            let vel_dir=self.velocity_dir.get(rng) as f64;
+            let vel_dir=vel_dir.to_radians();
+            let (mut xval,mut yval)=(vel_dir.cos(),vel_dir.sin());
+            let vel_mag=self.velocity_mag.get(rng) as f64;
+            xval*=vel_mag;
+            yval*=vel_mag;
+            (xval,yval)
+        };
+
+        let curr=self.counter;
+        self.counter+=1;
+        let r=Retf64{id:curr,pos:[px,py],vel:[velx,vely],radius:[rx,ry]};
+        Some(r)
+    }
+}
+pub fn create_world_generator(num:usize,area:&[isize;4],radius:[isize;2],velocity:[isize;2])->RangeGenIterf64{
+    let arr:&[usize]=&[100,42,6];
+    let rng =  SeedableRng::from_seed(arr);
+
+
+    let xvaluegen=UniformRangeGenerator::new(area[0],area[1]);
+    let yvaluegen=UniformRangeGenerator::new(area[2],area[3]);
+    let radiusgen= UniformRangeGenerator::new(radius[0],radius[1]);
+
+
+    let velocity_dir=UniformRangeGenerator::new(0,360);
+    let velocity_mag= UniformRangeGenerator::new(velocity[0],velocity[1]);
+
+    RangeGenIterf64{max:num,counter:0,rng,xvaluegen,yvaluegen,radiusgen,velocity_dir,velocity_mag}
+}
+
+
+
+struct UniformRangeGenerator{
+    range:Range<isize>
+}
+
+impl UniformRangeGenerator{
+    pub fn new(a:isize,b:isize)->Self{
+        //let rr = a.get_range2::<axgeom::XAXISS>();
+        let xdist = rand::distributions::Range::new(a,b);
+        UniformRangeGenerator{range:xdist}
+    }
+    pub fn get(&self,rng:&mut StdRng)->isize{
+        self.range.ind_sample(rng)
+    }
+}

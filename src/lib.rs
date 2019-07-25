@@ -3,6 +3,8 @@
 //!
 //! Why the name? Not sure. Duck Duck Goose.
 
+
+
 extern crate axgeom;
 extern crate num;
 extern crate num_traits;
@@ -12,6 +14,36 @@ use num_traits::Num;
 pub mod vec2f32;
 pub mod vec2f64;
 pub mod bot;
+
+
+
+use ordered_float::NotNan;
+
+#[macro_export]
+macro_rules! f64n {
+    ( $x:expr  ) => {
+        {
+            NotNan::new($x).unwrap()
+        }
+    };
+}
+
+pub type F64n=NotNan<f64>;
+pub type F32n=NotNan<f32>;
+
+
+
+pub struct Conv;
+impl Conv{
+
+    //TODO use transmute on these for more performance!!!
+    pub fn point_to_inner(a:[F64n;2])->[f64;2]{
+        //TODO safe to use transmute?
+        [a[0].into_inner(),a[1].into_inner()]
+    }
+}
+
+
 
 ///Passed to gravitate.
 pub trait GravityTrait {
@@ -163,6 +195,43 @@ pub fn stop_wall<N:Num+Copy+PartialOrd>(pos:&mut [N;2],dim:[N;2]){
 }
 
 
+pub trait BorderCollideTrait{
+    type N: Num + Copy + PartialOrd + core::ops::MulAssign + core::ops::Neg<Output=Self::N>;
+    fn pos_vel_mut(&mut self) -> (&mut [Self::N; 2],&mut [Self::N;2]);
+}
+
+pub fn collide_with_border<B:BorderCollideTrait>(
+        a:&mut B,rect2:&axgeom::Rect<B::N>,drag:B::N){
+
+    let xx=rect2.get_range(axgeom::XAXISS);
+    let yy=rect2.get_range(axgeom::YAXISS);
+
+    //let drag=0.5;
+    let (pos,vel)=&mut a.pos_vel_mut();
+
+    if pos[0]<xx.left{
+        pos[0]=xx.left;
+        vel[0]= -vel[0];
+        vel[0]*=drag;
+    }
+    if pos[0]>xx.right{
+        pos[0]=xx.right;
+        vel[0]= -vel[0];
+        vel[0]*=drag;
+    }
+    if pos[1]<yy.left{
+        pos[1]=yy.left;
+        vel[1]= -vel[1];
+        vel[1]*=drag;
+    }
+    if pos[1]>yy.right{
+        pos[1]=yy.right;
+        vel[1]= -vel[1];
+        vel[1]*=drag;
+    }
+
+}
+
 ///Wraps the first point around the rectangle made between (0,0) and dim.
 pub fn wrap_position<N: Num + Copy + PartialOrd>(a: &mut [N; 2], dim: [N; 2]) {
     let start = [N::zero(); 2];
@@ -188,6 +257,8 @@ pub enum WallSide {
     LeftOf,
     RightOf,
 }
+
+
 
 ///Returns which cardinal direction the specified rectangle is closest to.
 pub fn collide_with_rect<N: Num + Copy + Ord>(
