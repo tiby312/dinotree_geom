@@ -11,9 +11,9 @@ extern crate num_traits;
 
 use num_traits::Num;
 
-pub mod vec2f32;
-pub mod vec2f64;
 pub mod bot;
+use cgmath::prelude::*;
+use cgmath::Vector2;
 
 
 
@@ -197,7 +197,7 @@ pub fn stop_wall<N:Num+Copy+PartialOrd>(pos:&mut [N;2],dim:[N;2]){
 
 pub trait BorderCollideTrait{
     type N: Num + Copy + PartialOrd + core::ops::MulAssign + core::ops::Neg<Output=Self::N>;
-    fn pos_vel_mut(&mut self) -> (&mut [Self::N; 2],&mut [Self::N;2]);
+    fn pos_vel_mut(&mut self) -> (&mut Vector2<Self::N>,&mut Vector2<Self::N>);
 }
 
 pub fn collide_with_border<B:BorderCollideTrait>(
@@ -206,28 +206,28 @@ pub fn collide_with_border<B:BorderCollideTrait>(
     let xx=rect2.get_range(axgeom::XAXISS);
     let yy=rect2.get_range(axgeom::YAXISS);
 
-    //let drag=0.5;
+
     let (pos,vel)=&mut a.pos_vel_mut();
 
-    if pos[0]<xx.left{
-        pos[0]=xx.left;
-        vel[0]= -vel[0];
-        vel[0]*=drag;
+    if pos.x<xx.left{
+        pos.x=xx.left;
+        vel.x= -vel.x;
+        vel.x*=drag;
     }
-    if pos[0]>xx.right{
-        pos[0]=xx.right;
-        vel[0]= -vel[0];
-        vel[0]*=drag;
+    if pos.x>xx.right{
+        pos.x=xx.right;
+        vel.x= -vel.x;
+        vel.x*=drag;
     }
-    if pos[1]<yy.left{
-        pos[1]=yy.left;
-        vel[1]= -vel[1];
-        vel[1]*=drag;
+    if pos.y<yy.left{
+        pos.y=yy.left;
+        vel.y= -vel.y;
+        vel.y*=drag;
     }
-    if pos[1]>yy.right{
-        pos[1]=yy.right;
-        vel[1]= -vel[1];
-        vel[1]*=drag;
+    if pos.y>yy.right{
+        pos.y=yy.right;
+        vel.y= -vel.y;
+        vel.y*=drag;
     }
 
 }

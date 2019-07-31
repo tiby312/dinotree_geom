@@ -1,9 +1,14 @@
 
 
 use axgeom::Rect;
-use crate::vec2f32::Vec2;
 use ordered_float::*;
 use dists;
+use cgmath::prelude::*;
+use cgmath::Vector2;
+use cgmath::vec2;
+
+
+
 pub struct BotScene{
     pub bot_prop:BotProp,
     pub bots:Vec<Bot>
@@ -40,8 +45,8 @@ impl BotSceneBuilder{
         
 
 
-        let mut bots:Vec<Bot>=spiral.take(self.num).map(|pos|{
-            Bot::new(Vec2::new(pos[0],pos[1]))
+        let bots:Vec<Bot>=spiral.take(self.num).map(|pos|{
+            Bot::new(vec2(pos[0],pos[1]))
         }).collect();
 
         let bot_prop=BotProp{
@@ -99,7 +104,7 @@ impl BotProp{
 
         let offset = bots[0].pos - bots[1].pos;
 
-        let dis_sqr = offset.dis_sqr();
+        let dis_sqr = offset.magnitude2();
         
         if dis_sqr >= prop.radius.dis2_squared() {
             //They not touching (bots are circular).
@@ -123,7 +128,7 @@ impl BotProp{
         
         let velocity_diff=bots[0].vel-bots[1].vel;
 
-        let drag=-prop.collision_drag*ammount_touching*velocity_diff.inner_product(offset);
+        let drag=-prop.collision_drag*ammount_touching*velocity_diff.dot(offset);
             
         let push1=drag+push_mag;
         let push2=-drag-push_mag;
@@ -148,7 +153,7 @@ impl BotProp{
     pub fn collide_mouse(&self,bot:&mut Bot,mouse:&Mouse){
         let prop=self;
         let offset = *mouse.get_midpoint() - bot.pos;
-        let dis_sqr = offset.dis_sqr();
+        let dis_sqr = offset.magnitude2();
         
         let sum_rad=mouse.get_radius() + prop.radius.dis();
         if dis_sqr < sum_rad*sum_rad {
@@ -177,15 +182,15 @@ impl BotProp{
 
 #[derive(Copy,Clone,Debug)]
 pub struct Bot{
-    pub pos: Vec2,
-    pub vel: Vec2,
-    pub acc: Vec2,
+    pub pos: Vector2<f32>,
+    pub vel: Vector2<f32>,
+    pub acc: Vector2<f32>,
 }
 
 impl crate::BorderCollideTrait for Bot{
     type N=f32;
-    fn pos_vel_mut(&mut self)->(&mut [f32;2],&mut [f32;2]){
-        (&mut self.pos.0,&mut self.vel.0)
+    fn pos_vel_mut(&mut self)->(&mut Vector2<f32>,&mut Vector2<f32>){
+        (&mut self.pos,&mut self.vel)
     }
 }
 impl Bot{
@@ -194,35 +199,35 @@ impl Bot{
     }
 
     pub fn create_bbox(&self,bot_scene:&BotProp)->Rect<f32>{
-        let p=self.pos.0;
+        let p=self.pos;
         let r=bot_scene.radius.dis();
-        Rect::new(p[0]-r,p[0]+r,p[1]-r,p[1]+r)
+        Rect::new(p.x-r,p.x+r,p.y-r,p.y+r)
     }
 
     pub fn create_bbox_nan(&self,bot_scene:&BotProp)->Rect<NotNan<f32>>{
         self.create_bbox(bot_scene).into_notnan().unwrap()
     }
 
-    pub fn new(pos:Vec2)->Bot{
-        let vel=Vec2([0.0;2]);
-        let acc=vel;
+    pub fn new(pos:Vector2<f32>)->Bot{
+        let vel=Vector2::zero();
+        let acc=Vector2::zero();
         Bot{pos,vel,acc}
     }
 
     #[inline]
-    pub fn pos(&self)->&Vec2{
+    pub fn pos(&self)->&Vector2<f32>{
         &self.pos
     }
 
     #[inline]
-    pub fn vel(&self)->&Vec2{
+    pub fn vel(&self)->&Vector2<f32>{
         &self.vel
     }
 
     pub fn push_away(&mut self,b:&mut Self,radius:f32,max_amount:f32){
         let mut diff=b.pos-self.pos;
 
-        let dis=diff.dis();
+        let dis=diff.magnitude();
 
         if dis<0.000001{
             return;
@@ -258,11 +263,11 @@ pub struct MouseProp {
 #[derive(Copy,Clone,Debug)]
 pub struct Mouse{
     pub mouse_prop: MouseProp,
-    pub midpoint:Vec2,
+    pub midpoint:Vector2<f32>,
     pub rect:axgeom::Rect<f32>
 }
 impl Mouse{
-    pub fn new(pos:Vec2,prop:&MouseProp)->Mouse{
+    pub fn new(pos:Vector2<f32>,prop:&MouseProp)->Mouse{
         let mut m:Mouse=unsafe{std::mem::uninitialized()};
         m.mouse_prop= *prop;
         m.move_to(pos);
@@ -272,17 +277,17 @@ impl Mouse{
     pub fn get_rect(&self)->&axgeom::Rect<f32>{
         &self.rect
     }
-    pub fn get_midpoint(&self)->&Vec2{
+    pub fn get_midpoint(&self)->&Vector2<f32>{
         &self.midpoint
     }
     pub fn get_radius(&self)->f32{
         self.mouse_prop.radius.dis()
     }
-    pub fn move_to(&mut self,pos:Vec2){
+    pub fn move_to(&mut self,pos:Vector2<f32>){
         self.midpoint= pos;
-        let p=self.midpoint.0;
+        let p=self.midpoint;
         let r=self.mouse_prop.radius.dis();
-        let r=axgeom::Rect::new(p[0]-r,p[0]+r,p[1]-r,p[1]+r);
+        let r=axgeom::Rect::new(p.x-r,p.x+r,p.y-r,p.y+r);
         self.rect=r;
     }
 }
