@@ -3,108 +3,113 @@
 //!
 //! Why the name? Not sure. Duck Duck Goose.
 
-
-
 extern crate axgeom;
-extern crate num;
-extern crate num_traits;
 
-use num_traits::Num;
 
 pub mod bot;
+
+use cgmath::num_traits::Float;
 use cgmath::prelude::*;
 use cgmath::Vector2;
-
-
-
+use cgmath::BaseFloat;
+use cgmath::vec2;
 use ordered_float::NotNan;
+use axgeom::Rect;
 
-#[macro_export]
-macro_rules! f64n {
-    ( $x:expr  ) => {
-        {
-            NotNan::new($x).unwrap()
-        }
-    };
-}
+use cgmath::num_traits::NumCast;
 
 pub type F64n=NotNan<f64>;
 pub type F32n=NotNan<f32>;
 
 
 
-pub struct Conv;
-impl Conv{
+pub fn cast_2array<K:NumCast+Copy,K2:NumCast+Copy>(a:[K;2])->Option<[K2;2]>{
+    let x=K2::from(a[0]);
+    let y=K2::from(a[1]);
 
-    //TODO use transmute on these for more performance!!!
-    pub fn point_to_inner(a:[F64n;2])->[f64;2]{
-        //TODO safe to use transmute?
-        [a[0].into_inner(),a[1].into_inner()]
+    match (x,y){
+        (Some(x),Some(y))=>{
+            Some([x,y])
+        },
+        _=>{
+            None
+        }
     }
 }
 
+pub fn rect_from_point<N:BaseFloat>(point:Vector2<N>,radius:Vector2<N>)->Rect<N>{
+    Rect::new(point.x-radius.x,point.x+radius.x,point.y-radius.y,point.y+radius.y)
+}
+/*
+pub fn point_notnan_to_inner(a:Vector2<F64n>)->Vector2<f64>{
+    vec2(a.x.into_inner(),a.y.into_inner())
+}
+pub struct PointNanErr;
+pub fn point_inner_to_notnan(a:Vector2<f64>)->Result<Vector2<F64n>,PointNanErr>{
+
+    let x=NotNan::new(a.x);
+    let y=NotNan::new(a.y);
+    match(x,y){
+        (Ok(x),Ok(y))=>{
+            Ok(vec2(x,y))
+        },
+        _=>{
+            Err(PointNanErr)
+        }
+    }
+}
+*/
 
 
 ///Passed to gravitate.
 pub trait GravityTrait {
-    type N: Num + PartialOrd + Copy;
-    fn pos(&self) -> [Self::N; 2];
+    type N: BaseFloat;
+    fn pos(&self) -> Vector2<Self::N>;
     fn mass(&self) -> Self::N;
-    fn apply_force(&mut self, arr: [Self::N; 2]);
+    fn apply_force(&mut self, arr: Vector2<Self::N>);
 }
 
 ///Returns the force to be exerted to the first object.
 ///The force to the second object can be retrieved simply by negating the first.
-pub fn gravitate<N: Num + PartialOrd + Copy, T: GravityTrait<N = N>, T2: GravityTrait<N = N>>(
+pub fn gravitate<T:GravityTrait>(
     a: &mut T,
-    b: &mut T2,
-    min: N,
-    gravity_const: N,
-    sqrt: impl Fn(N) -> N,
+    b: &mut T,
+    min: T::N,
+    gravity_const: T::N
 ) -> Result<(), ErrTooClose> {
     let p1 = a.pos();
     let p2 = b.pos();
     let m1 = a.mass();
     let m2 = b.mass();
 
-    let diffx = p2[0] - p1[0];
-    let diffy = p2[1] - p1[1];
-    let dis_sqr = diffx * diffx + diffy * diffy;
+    let diff=p2-p1;
+    let dis_sqr=diff.magnitude2();
 
     if dis_sqr > min {
         //newtons law of gravitation (modified for 2d??? divide by len instead of sqr)
         let force = gravity_const * (m1 * m2) / dis_sqr;
 
-        let dis = sqrt(dis_sqr);
-        let finalx = diffx * (force / dis);
-        let finaly = diffy * (force / dis);
+        let dis = Float::sqrt(dis_sqr);
+        
+        let final_vec = diff * (force / dis);
 
-        a.apply_force([finalx, finaly]);
-        b.apply_force([N::zero() - finalx, N::zero() - finaly]);
+
+        a.apply_force(final_vec);
+        b.apply_force(-final_vec);
         Ok(())
     } else {
         Err(ErrTooClose)
     }
 }
 
-fn sub<N: Num + Copy>(a: [N; 2], b: [N; 2]) -> [N; 2] {
-    [b[0] - a[0], b[1] - a[1]]
-}
-fn derive_center<N: Num + Copy>(a: &axgeom::Rect<N>) -> [N; 2] {
-    let two = N::one() + N::one();
-    let ((a, b), (c, d)) = a.get();
-    [a + (b - a) / two, c + (d - c) / two]
-}
 
-fn dot<N: Num + Copy>(a: [N; 2], b: [N; 2]) -> N {
-    a[0] * b[0] + a[1] * b[1]
-}
+
 
 ///Passed to repel
 pub trait RepelTrait {
-    type N: Num + Copy + PartialOrd;
-    fn pos(&self) -> [Self::N; 2];
-    fn add_force(&mut self, force: [Self::N; 2]);
+    type N: BaseFloat +  One+ Copy + PartialOrd;
+    fn pos(&self) -> Vector2<Self::N>;
+    fn add_force(&mut self, force: Vector2<Self::N>);
 }
 
 ///If we repel too close, because of the inverse square we might get overlow problems.
@@ -113,30 +118,30 @@ pub struct ErrTooClose;
 ///Repel one object by simply not calling add_force on the other.
 pub fn repel_one<B: RepelTrait>(
     bot1: &mut B,
-    pos: [B::N; 2],
+    pos: Vector2<B::N>,
     closest: B::N,
-    mag: B::N,
-    sqrt: impl Fn(B::N) -> B::N,
+    mag: B::N
 ) -> Result<(), ErrTooClose> {
     let a = bot1;
 
     let pos1 = a.pos();
     let pos2 = pos;
-    let diff = [pos2[0] - pos1[0], pos2[1] - pos1[1]];
-
-    let len_sqr = diff[0] * diff[0] + diff[1] * diff[1];
+    
+    let diff=pos2-pos1;
+    
+    let len_sqr=diff.magnitude2();
 
     if len_sqr < closest {
         return Err(ErrTooClose);
     }
 
-    let len = sqrt(len_sqr);
+    let len = Float::sqrt(len_sqr);
     let mag = mag / len;
 
-    let norm = [diff[0] / len, diff[1] / len];
 
-    let zero = <B::N as num_traits::Zero>::zero();
-    a.add_force([zero - norm[0] * mag, zero - norm[1] * mag]);
+    let force=diff.normalize_to(mag);
+
+    a.add_force(-force);
 
     Ok(())
 }
@@ -146,57 +151,36 @@ pub fn repel<B: RepelTrait>(
     bot1: &mut B,
     bot2: &mut B,
     closest: B::N,
-    mag: B::N,
-    sqrt: impl Fn(B::N) -> B::N,
+    mag: B::N
 ) -> Result<(), ErrTooClose> {
     let a = bot1;
     let b = bot2;
 
     let pos1 = a.pos();
     let pos2 = b.pos();
-    let diff = [pos2[0] - pos1[0], pos2[1] - pos1[1]];
+    let diff = pos2-pos1;
 
-    let len_sqr = diff[0] * diff[0] + diff[1] * diff[1];
+    let len_sqr=diff.magnitude2();
 
     if len_sqr < closest {
         return Err(ErrTooClose);
     }
 
-    let len = sqrt(len_sqr);
+    let len = len_sqr.sqrt();
     let mag = mag / len;
 
-    let norm = [diff[0] / len, diff[1] / len];
+    let force=diff.normalize_to(mag);
 
-    let zero = <B::N as num_traits::Zero>::zero();
-    a.add_force([zero - norm[0] * mag, zero - norm[1] * mag]);
-    b.add_force([norm[0] * mag, norm[1] * mag]);
+    a.add_force(-force);
+    b.add_force(force);
 
     Ok(())
 }
 
 
-pub fn stop_wall<N:Num+Copy+PartialOrd>(pos:&mut [N;2],dim:[N;2]){
-    let start = [N::zero();2];
-
-    if pos[0] > dim[0]{
-        pos[0] = dim[0];
-    }
-    if pos[0] < start[0]{
-        pos[0]=start[0];
-    }
-
-
-    if pos[1] > dim[1]{
-        pos[1] = dim[1];
-    }
-    if pos[1] < start[1]{
-        pos[1]=start[1];
-    }
-}
-
 
 pub trait BorderCollideTrait{
-    type N: Num + Copy + PartialOrd + core::ops::MulAssign + core::ops::Neg<Output=Self::N>;
+    type N: BaseFloat + Copy + PartialOrd + core::ops::MulAssign + core::ops::Neg<Output=Self::N>;
     fn pos_vel_mut(&mut self) -> (&mut Vector2<Self::N>,&mut Vector2<Self::N>);
 }
 
@@ -232,23 +216,44 @@ pub fn collide_with_border<B:BorderCollideTrait>(
 
 }
 
-///Wraps the first point around the rectangle made between (0,0) and dim.
-pub fn wrap_position<N: Num + Copy + PartialOrd>(a: &mut [N; 2], dim: [N; 2]) {
-    let start = [N::zero(); 2];
 
-    if a[0] > dim[0] {
-        a[0] = start[0]
+pub fn stop_wall<N:BaseFloat+Zero+Copy+PartialOrd>(pos: &mut Vector2<N>, dim: Vector2<N>){
+    let start = vec2(N::zero(),N::zero());
+    if pos.x > dim.x{
+        pos.x = dim.x;
+    }else if pos.x < start.x{
+        pos.x=start.x;
     }
-    if a[0] < start[0] {
-        a[0] = dim[0];
-    }
-    if a[1] > dim[1] {
-        a[1] = start[1];
-    }
-    if a[1] < start[1] {
-        a[1] = dim[1];
+
+
+    if pos.y > dim.y{
+        pos.y = dim.y;
+    }else if pos.y < start.y{
+        pos.y=start.y;
     }
 }
+
+
+///Wraps the first point around the rectangle made between (0,0) and dim.
+pub fn wrap_position<N: BaseFloat+ Zero + Copy + PartialOrd>(a: &mut Vector2<N>, dim: Vector2<N>) {
+    let start = vec2(N::zero(),N::zero());
+
+    if a.x > dim.x {
+        a.x = start.x
+    }else if a.x < start.x {
+        a.x = dim.x;
+    }
+
+    if a.y > dim.y {
+        a.y = start.y;
+    }else if a.y < start.y {
+        a.y = dim.y;
+    }
+}
+
+
+
+
 
 ///Describes a cardinal direction..
 pub enum WallSide {
@@ -261,26 +266,26 @@ pub enum WallSide {
 
 
 ///Returns which cardinal direction the specified rectangle is closest to.
-pub fn collide_with_rect<N: Num + Copy + Ord>(
+pub fn collide_with_rect<N: BaseFloat+ Copy + Ord>(
     botr: &axgeom::Rect<N>,
     wallr: &axgeom::Rect<N>,
 ) -> WallSide {
     let wallx = wallr.get_range(axgeom::XAXISS);
     let wally = wallr.get_range(axgeom::YAXISS);
 
-    let center_bot = derive_center(botr);
-    let center_wall = derive_center(wallr);
+    let center_bot = botr.derive_center();
+    let center_wall = wallr.derive_center();
 
     let ratio = (wallx.right - wallx.left) / (wally.right - wally.left);
 
     //Assuming perfect square
-    let p1 = [N::one(), ratio];
-    let p2 = [N::zero() - N::one(), ratio];
+    let p1 = vec2(N::one(), ratio);
+    let p2 = vec2(N::zero() - N::one(), ratio);
 
-    let diff = sub(center_wall, center_bot);
+    let diff = center_bot-center_wall;
 
-    let d1 = dot(p1, diff);
-    let d2 = dot(p2, diff);
+    let d1 = p1.dot(diff);
+    let d2 = p2.dot(diff);
     let zero = N::zero();
 
     use std::cmp::Ordering::*;
@@ -325,45 +330,19 @@ pub fn collide_with_rect<N: Num + Copy + Ord>(
     }
 }
 
-///Returns the squared distances between two points.
-pub fn distance_squred_point<N: Num + Copy + PartialOrd>(point1: [N; 2], point2: [N; 2]) -> N {
-    let x = point2[0] - point1[0];
-    let y = point2[1] - point1[1];
-    x * x + y * y
-}
 
-///If the point is outisde the rectangle, returns the squared distance from a point to a rectangle.
-///If the point is insert the rectangle, it will return None.
-pub fn distance_squared_point_to_rect<N: Num + Copy + PartialOrd>(
-    point: [N; 2],
-    rect: &axgeom::Rect<N>,
-) -> Option<N> {
-    let (px, py) = (point[0], point[1]);
-
-    let ((a, b), (c, d)) = rect.get();
-
-    let xx = num::clamp(px, a, b);
-    let yy = num::clamp(py, c, d);
-
-    let dis = (xx - px) * (xx - px) + (yy - py) * (yy - py);
-
-    //Then the point must be insert the rect.
-    //In this case, lets return something negative.
-    if xx > a && xx < b && yy > c && yy < d {
-        None
-    } else {
-        Some(dis)
-    }
-}
 
 ///A Ray.
 #[derive(Debug, Copy, Clone)]
 pub struct Ray<N> {
-    pub point: [N; 2],
-    pub dir: [N; 2],
+    pub point: Vector2<N>,
+    pub dir: Vector2<N>,
 }
 
-impl<N: Num + Copy + Ord> Ray<N> {
+impl<N: BaseFloat + Copy + Ord> Ray<N> {
+    pub fn new(point:Vector2<N>,dir:Vector2<N>)->Ray<N>{
+        Ray{point,dir}
+    }
     //Given a ray and an axis aligned line, return the tvalue,and x coordinate
     pub fn compute_intersection_tvalue<A: axgeom::AxisTrait>(
         &self,
@@ -371,42 +350,9 @@ impl<N: Num + Copy + Ord> Ray<N> {
         line: N,
     ) -> Option<(N)> {
         let ray = self;
-        /*
-        if axis.is_xaxis(){
-            if ray.dir[0]==N::zero(){
-                if ray.point[0]==line{
-                    Some(N::zero())
-                }else{
-                    None
-                }
-            }else{
-                let t=(line-ray.point[0])/ray.dir[0];
-
-                if t>=N::zero() /*&& t<=ray.tlen*/{
-                    Some(t)
-                }else{
-                    None
-                }
-            }
-        }else{
-            if ray.dir[1]==N::zero(){
-                if ray.point[1]==line{
-                    Some(N::zero())
-                }else{
-                    None
-                }
-            }else{
-
-                let t=(line-ray.point[1])/ray.dir[1];
-                if t>=N::zero() /*&& t<=ray.tlen*/{
-                    Some(t)
-                }else{
-                    None
-                }
-            }
-        }
-        */
+        
         let axis = if axis.is_xaxis() { 0 } else { 1 };
+
         if ray.dir[axis] == N::zero() {
             if ray.point[axis] == line {
                 Some(N::zero())
@@ -431,23 +377,25 @@ impl<N: Num + Copy + Ord> Ray<N> {
         let ((x1, x2), (y1, y2)) = rect.get();
 
         //val=t*m+y
-        let (tmin, tlen) = if dir[0] != N::zero() {
-            let tx1 = (x1 - point[0]) / dir[0];
-            let tx2 = (x2 - point[0]) / dir[0];
+        let (tmin, tlen) = if dir.x != N::zero() {
+            let tx1 = (x1 - point.x) / dir.x;
+            let tx2 = (x2 - point.x) / dir.x;
 
-            (tx1.min(tx2), tx1.max(tx2))
-        } else if point[0] < x1 || point[0] > x2 {
+            (Float::min(tx1,tx2), Float::max(tx1,tx2))
+        } else if point.x < x1 || point.x > x2 {
             return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
         } else {
             return IntersectsBotResult::Hit(N::zero()); //TODO i think this is wrong?
         };
 
-        let (tmin, tlen) = if dir[1] != N::zero() {
-            let ty1 = (y1 - point[1]) / dir[1];
-            let ty2 = (y2 - point[1]) / dir[1];
+        let (tmin, tlen) = if dir.y != N::zero() {
+            let ty1 = (y1 - point.y) / dir.y;
+            let ty2 = (y2 - point.y) / dir.y;
 
-            (tmin.max(ty1.min(ty2)), tlen.min(ty1.max(ty2)))
-        } else if point[1] < y1 || point[1] > y2 {
+            let k1=Float::max(tmin,Float::min(ty1,ty2));
+            let k2=Float::min(tlen,Float::max(ty1,ty2));
+            (k1,k2)
+        } else if point.y < y1 || point.y > y2 {
             return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
         } else {
             (tmin, tlen)
