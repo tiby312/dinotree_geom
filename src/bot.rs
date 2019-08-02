@@ -198,16 +198,14 @@ impl Bot{
         self.acc=bot.acc;
     }
 
+
     pub fn create_bbox(&self,bot_scene:&BotProp)->Rect<f32>{
         let p=self.pos;
         let r=bot_scene.radius.dis();
         Rect::new(p.x-r,p.x+r,p.y-r,p.y+r)
     }
 
-    pub fn create_bbox_nan(&self,bot_scene:&BotProp)->Rect<NotNan<f32>>{
-        self.create_bbox(bot_scene).cast().unwrap()
-    }
-
+  
     pub fn new(pos:Vector2<f32>)->Bot{
         let vel=Vector2::zero();
         let acc=Vector2::zero();
