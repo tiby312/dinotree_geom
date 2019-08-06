@@ -8,57 +8,25 @@ extern crate axgeom;
 
 pub mod bot;
 
-use cgmath::num_traits::Float;
-use cgmath::prelude::*;
-use cgmath::Vector2;
-use cgmath::BaseFloat;
-use cgmath::vec2;
-use ordered_float::NotNan;
+use axgeom::Vec2;
+use axgeom::vec2;
+use axgeom::ordered_float::NotNan;
 use axgeom::Rect;
+use axgeom::num_traits::Float;
+use axgeom::num_traits::Num;
+use axgeom::num_traits::Zero;
+use core::ops::Neg;
+use axgeom::num_traits::NumAssign;
 
 
+pub trait MyNum: Zero+Copy+NumAssign + PartialOrd + Neg<Output=Self>{
+}
+impl<T:Zero+Copy+NumAssign+PartialOrd+Neg<Output=Self>> MyNum for T{}
 //use cgmath::num_traits::NumCast;
 
 pub type F64n=NotNan<f64>;
 pub type F32n=NotNan<f32>;
 
-
-//TODO use this
-pub fn vec2_inner_into<B,A:From<B>>(a:Vector2<B>)->Vector2<A>{
-    let x=A::from(a.x);
-    let y=A::from(a.y);
-    vec2(x,y)
-}
-
-pub fn vec2_inner_try_into<B,A:TryFrom<B>>(a:Vector2<B>)->Result<Vector2<A>,A::Error>{
-    let x=A::try_from(a.x);
-    let y=A::try_from(a.y);
-    match(x,y){
-        (Ok(x),Ok(y))=>{
-            Ok(vec2(x,y))
-        },
-        (Ok(_),Err(e))=>{
-            Err(e)
-        },
-        (Err(e),Ok(_))=>{
-            Err(e)
-        },
-        (Err(e),Err(_))=>{
-            Err(e)
-        }
-    }
-}
-
-
-pub fn test1(a:Vector2<F64n>)->Vector2<f64>{
-    vec2_inner_into(a)
-}
-pub fn test2(a:Rect<F64n>)->Rect<f64>{
-    a.inner_into()
-}
-pub fn test3(a:Rect<f64>)->Rect<F64n>{
-    a.inner_try_into().unwrap()
-}
 
 
 pub fn array2_inner_into<B:Copy,A:From<B>>(a:[B;2])->[A;2]{
@@ -91,37 +59,18 @@ pub fn array2_inner_try_into<B:Copy,A:TryFrom<B>>(a:[B;2])->Result<[A;2],A::Erro
 
 use core::ops::Sub;
 use core::ops::Add;
-pub fn rect_from_point<N:Copy+Sub<Output=N>+Add<Output=N>>(point:Vector2<N>,radius:Vector2<N>)->Rect<N>{
+pub fn rect_from_point<N:Copy+Sub<Output=N>+Add<Output=N>>(point:Vec2<N>,radius:Vec2<N>)->Rect<N>{
     Rect::new(point.x-radius.x,point.x+radius.x,point.y-radius.y,point.y+radius.y)
 }
 
-/*
-pub fn point_notnan_to_inner(a:Vector2<F64n>)->Vector2<f64>{
-    vec2(a.x.into_inner(),a.y.into_inner())
-}
-pub struct PointNanErr;
-pub fn point_inner_to_notnan(a:Vector2<f64>)->Result<Vector2<F64n>,PointNanErr>{
-
-    let x=NotNan::new(a.x);
-    let y=NotNan::new(a.y);
-    match(x,y){
-        (Ok(x),Ok(y))=>{
-            Ok(vec2(x,y))
-        },
-        _=>{
-            Err(PointNanErr)
-        }
-    }
-}
-*/
 
 
 ///Passed to gravitate.
 pub trait GravityTrait {
-    type N: BaseFloat;
-    fn pos(&self) -> Vector2<Self::N>;
+    type N: Float;
+    fn pos(&self) -> Vec2<Self::N>;
     fn mass(&self) -> Self::N;
-    fn apply_force(&mut self, arr: Vector2<Self::N>);
+    fn apply_force(&mut self, arr: Vec2<Self::N>);
 }
 
 ///Returns the force to be exerted to the first object.
@@ -162,9 +111,9 @@ pub fn gravitate<T:GravityTrait>(
 
 ///Passed to repel
 pub trait RepelTrait {
-    type N: BaseFloat +  One+ Copy + PartialOrd;
-    fn pos(&self) -> Vector2<Self::N>;
-    fn add_force(&mut self, force: Vector2<Self::N>);
+    type N: Float;
+    fn pos(&self) -> Vec2<Self::N>;
+    fn add_force(&mut self, force: Vec2<Self::N>);
 }
 
 ///If we repel too close, because of the inverse square we might get overlow problems.
@@ -173,7 +122,7 @@ pub struct ErrTooClose;
 ///Repel one object by simply not calling add_force on the other.
 pub fn repel_one<B: RepelTrait>(
     bot1: &mut B,
-    pos: Vector2<B::N>,
+    pos: Vec2<B::N>,
     closest: B::N,
     mag: B::N
 ) -> Result<(), ErrTooClose> {
@@ -234,9 +183,11 @@ pub fn repel<B: RepelTrait>(
 
 
 
+
+
 pub trait BorderCollideTrait{
-    type N: BaseFloat + Copy + PartialOrd + core::ops::MulAssign + core::ops::Neg<Output=Self::N>;
-    fn pos_vel_mut(&mut self) -> (&mut Vector2<Self::N>,&mut Vector2<Self::N>);
+    type N: MyNum;
+    fn pos_vel_mut(&mut self) -> (&mut Vec2<Self::N>,&mut Vec2<Self::N>);
 }
 
 pub fn collide_with_border<B:BorderCollideTrait>(
@@ -272,7 +223,7 @@ pub fn collide_with_border<B:BorderCollideTrait>(
 }
 
 
-pub fn stop_wall<N:BaseFloat+Zero+Copy+PartialOrd>(pos: &mut Vector2<N>, dim: Vector2<N>){
+pub fn stop_wall<N:MyNum>(pos: &mut Vec2<N>, dim: Vec2<N>){
     let start = vec2(N::zero(),N::zero());
     if pos.x > dim.x{
         pos.x = dim.x;
@@ -290,8 +241,11 @@ pub fn stop_wall<N:BaseFloat+Zero+Copy+PartialOrd>(pos: &mut Vector2<N>, dim: Ve
 
 
 ///Wraps the first point around the rectangle made between (0,0) and dim.
-pub fn wrap_position<N: BaseFloat+ Zero + Copy + PartialOrd>(a: &mut Vector2<N>, dim: Vector2<N>) {
-    let start = vec2(N::zero(),N::zero());
+pub fn wrap_position<N:MyNum>(a: &mut Vec2<N>, dim: Rect<N>) {
+    let ((a_,b),(c,d))=dim.get();
+
+    let start = vec2(a_,c);
+    let dim=vec2(b,d);
 
     if a.x > dim.x {
         a.x = start.x
@@ -321,10 +275,10 @@ pub enum WallSide {
 
 
 ///Returns which cardinal direction the specified rectangle is closest to.
-pub fn collide_with_rect<N: BaseFloat+ Copy + Ord>(
+pub fn collide_with_rect<N: Float>(
     botr: &axgeom::Rect<N>,
     wallr: &axgeom::Rect<N>,
-) -> WallSide {
+) -> Option<WallSide> {
     let wallx = wallr.get_range(axgeom::XAXISS);
     let wally = wallr.get_range(axgeom::YAXISS);
 
@@ -345,7 +299,7 @@ pub fn collide_with_rect<N: BaseFloat+ Copy + Ord>(
 
     use std::cmp::Ordering::*;
 
-    match [d1.cmp(&zero), d2.cmp(&zero)] {
+    let ans=match [d1.partial_cmp(&zero)?, d2.partial_cmp(&zero)?] {
         [Less, Less] => {
             //top
             WallSide::Above
@@ -382,7 +336,8 @@ pub fn collide_with_rect<N: BaseFloat+ Copy + Ord>(
             //bottom left
             WallSide::Below
         }
-    }
+    };
+    Some(ans)
 }
 
 
@@ -390,23 +345,23 @@ pub fn collide_with_rect<N: BaseFloat+ Copy + Ord>(
 ///A Ray.
 #[derive(Debug, Copy, Clone)]
 pub struct Ray<N> {
-    pub point: Vector2<N>,
-    pub dir: Vector2<N>,
+    pub point: Vec2<N>,
+    pub dir: Vec2<N>,
 }
 
 impl<N> Ray<N> {
-    pub fn new(point:Vector2<N>,dir:Vector2<N>)->Ray<N>{
+    pub fn new(point:Vec2<N>,dir:Vec2<N>)->Ray<N>{
         Ray{point,dir}
     }
 
     pub fn inner_into<B:From<N>>(self)->Ray<B>{
-        let point=vec2_inner_into(self.point);
-        let dir=vec2_inner_into(self.dir);
+        let point=self.point.inner_into();
+        let dir=self.dir.inner_into();
         Ray{point,dir}
     }
     pub fn inner_try_into<B:TryFrom<N>>(self)->Result<Ray<B>,B::Error>{
-        let point=vec2_inner_try_into(self.point);
-        let dir=vec2_inner_try_into(self.dir);
+        let point=self.point.inner_try_into();
+        let dir=self.dir.inner_try_into();
         match(point,dir){
             (Ok(point),Ok(dir))=>{
                 Ok(Ray{point,dir})
@@ -423,59 +378,59 @@ impl<N> Ray<N> {
         }
     }
 }
-/*
-impl<N:NumCast+Copy> Ray<N>{
-    pub fn cast<T:NumCast>(self)->Option<Ray<T>>{
-        let a=self.point.cast();
-        let b=self.dir.cast();
-        match(a,b){
-            (Some(point),Some(dir))=>{
-                Some(Ray{point,dir})
-            },
-            _=>{
-                None
-            }
-        }
-    }
-}
-*/
 
-use cgmath::num_traits::Num;
-use core::cmp::PartialOrd;
+
 
 
 //Given a ray and an axis aligned line, return the tvalue,and x coordinate
-pub fn ray_compute_intersection_tvalue<A: axgeom::AxisTrait,N:BaseNum+Copy>(
+pub fn ray_compute_intersection_tvalue<A: axgeom::AxisTrait,N:MyNum>(
     ray:&Ray<N>,
     axis: A,
     line: N,
 ) -> Option<(N)> {
     
-    let axis = if axis.is_xaxis() { 0 } else { 1 };
 
-    if ray.dir[axis] == N::zero() {
-        if ray.point[axis] == line {
-            Some(N::zero())
+    if axis.is_xaxis(){
+        if ray.dir.x == N::zero() {
+            if ray.point.x == line {
+                Some(N::zero())
+            } else {
+                None
+            }
         } else {
-            None
+            let t = (line - ray.point.x) / ray.dir.x;
+            if t >= N::zero()
+            {
+                Some(t)
+            } else {
+                None
+            }
         }
-    } else {
-        let t = (line - ray.point[axis]) / ray.dir[axis];
-        if t >= N::zero()
-        /*&& t<=ray.tlen*/
-        {
-            Some(t)
+    }else{
+        if ray.dir.y == N::zero() {
+            if ray.point.y == line {
+                Some(N::zero())
+            } else {
+                None
+            }
         } else {
-            None
+            let t = (line - ray.point.y) / ray.dir.y;
+            if t >= N::zero()
+            {
+                Some(t)
+            } else {
+                None
+            }
         }
     }
+    
 }
 
-use cgmath::BaseNum;
 
 
-///Returns if a ray intersects a box.
-pub fn ray_intersects_box<N:BaseNum+Copy>(ray:&Ray<N>, rect: &axgeom::Rect<N>,min:impl Fn(N,N)->N,max:impl Fn(N,N)->N) -> IntersectsBotResult<N> {
+//We are making these generic for floats. Integers and floats behave fundamentally different.
+//Dont make generic math functions over both. Example sqrt() behaves differently.
+pub fn ray_intersects_box_int<N:MyNum+Ord>(ray:&Ray<N>, rect: &axgeom::Rect<N>) -> IntersectsBotResult<N>{
     let point = ray.point;
     let dir = ray.dir;
 
@@ -486,7 +441,7 @@ pub fn ray_intersects_box<N:BaseNum+Copy>(ray:&Ray<N>, rect: &axgeom::Rect<N>,mi
         let tx1 = (x1 - point.x) / dir.x;
         let tx2 = (x2 - point.x) / dir.x;
 
-        (min(tx1,tx2), max(tx1,tx2))
+        (tx1.min(tx2), tx1.max(tx2))
     } else if point.x < x1 || point.x > x2 {
         return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
     } else {
@@ -497,8 +452,61 @@ pub fn ray_intersects_box<N:BaseNum+Copy>(ray:&Ray<N>, rect: &axgeom::Rect<N>,mi
         let ty1 = (y1 - point.y) / dir.y;
         let ty2 = (y2 - point.y) / dir.y;
 
-        let k1=max(tmin,min(ty1,ty2));
-        let k2=min(tlen,max(ty1,ty2));
+        let k1=tmin.max(ty1.min(ty2));
+        let k2=tlen.min(ty1.max(ty2));
+        (k1,k2)
+    } else if point.y < y1 || point.y > y2 {
+        return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
+    } else {
+        (tmin, tlen)
+    };
+
+    //TODO figure out inequalities!
+    if tmin <= N::zero() && tlen >= N::zero() {
+        return IntersectsBotResult::Inside;
+    }
+
+    if tmin <= N::zero() && tlen < N::zero() {
+        return IntersectsBotResult::NoHit;
+    }
+
+    if tlen >= tmin {
+        IntersectsBotResult::Hit(tmin)
+    } else {
+        IntersectsBotResult::NoHit
+    }
+
+}
+
+
+
+
+
+///Returns if a ray intersects a box.
+pub fn ray_intersects_box<N:Float>(ray:&Ray<N>, rect: &axgeom::Rect<N>) -> IntersectsBotResult<N> {
+    let point = ray.point;
+    let dir = ray.dir;
+
+    let ((x1, x2), (y1, y2)) = rect.get();
+
+    //val=t*m+y
+    let (tmin, tlen) = if dir.x != N::zero() {
+        let tx1 = (x1 - point.x) / dir.x;
+        let tx2 = (x2 - point.x) / dir.x;
+
+        (tx1.min(tx2), tx1.max(tx2))
+    } else if point.x < x1 || point.x > x2 {
+        return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
+    } else {
+        return IntersectsBotResult::Hit(N::zero()); //TODO i think this is wrong?
+    };
+
+    let (tmin, tlen) = if dir.y != N::zero() {
+        let ty1 = (y1 - point.y) / dir.y;
+        let ty2 = (y2 - point.y) / dir.y;
+
+        let k1=tmin.max(ty1.min(ty2));
+        let k2=tlen.min(ty1.max(ty2));
         (k1,k2)
     } else if point.y < y1 || point.y > y2 {
         return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
