@@ -5,7 +5,6 @@ use axgeom::ordered_float::*;
 use dists;
 use axgeom::Vec2;
 use axgeom::vec2;
-use axgeom::num_traits::Zero;
 
 pub struct BotScene{
     pub bot_prop:BotProp,
@@ -13,8 +12,8 @@ pub struct BotScene{
 }
 
 pub struct BotSceneBuilder{
-    grow:f64,
-    radius:f64,
+    grow:f32,
+    radius:f32,
     num:usize,
     bot_radius:f32
 }
@@ -23,7 +22,7 @@ impl BotSceneBuilder{
         BotSceneBuilder{grow:0.2,radius:17.0,num,bot_radius:5.0}
     }
 
-    pub fn with_grow(&mut self,grow:f64)->&mut Self{
+    pub fn with_grow(&mut self,grow:f32)->&mut Self{
         self.grow=grow;
         self
     }
@@ -32,14 +31,14 @@ impl BotSceneBuilder{
         self
     }
 
-    pub fn with_radius_of(&mut self,radius:f64)->&mut Self{
+    pub fn with_radius_of(&mut self,radius:f32)->&mut Self{
         self.radius=radius;
         self
     }
 
     pub fn build(&mut self)->BotScene{
         
-        let spiral=dists::spiral::Spiral::new([0.0,0.0],self.radius,self.grow).as_f32();
+        let spiral=dists::spiral::Spiral::new([0.0,0.0],self.radius,self.grow);
         
 
 
@@ -77,11 +76,10 @@ pub struct BotProp {
 
 
 
-
 impl BotProp{
 
-
-    pub fn collide(&self,a:&mut Bot,b:&mut Bot){
+    //#[inline(always)]
+    pub fn collide(&self,bota:&mut Bot,botb:&mut Bot){
 
         //Takes a values between 0 and 1, and returns a value between 0 and 1.
         //The input is the distance from not touching.
@@ -91,6 +89,7 @@ impl BotProp{
         //The output is the normalized force with which to handle.
         //A value of 0 is no force.
         //A value of 1 is full force.
+        #[inline(always)]
         pub fn handle_repel(input:f32)->f32{
             let a=3.0*input*input;
             a.min(1.0)
@@ -98,9 +97,8 @@ impl BotProp{
 
         
         let prop=self;
-        let bots=[a,b];
 
-        let offset = bots[0].pos - bots[1].pos;
+        let offset = bota.pos - botb.pos;
 
         let dis_sqr = offset.magnitude2();
         
@@ -111,43 +109,56 @@ impl BotProp{
 
         //At this point, we know they collide!!!!
 
+        /*
+        fn fast_inv_sqrt(x: f32) -> f32 {
+            let i: u32 = unsafe { std::mem::transmute(x) };
+            let j = 0x5f3759df - (i >> 1);
+            let y: f32 = unsafe { std::mem::transmute(j) };
+            y * (1.5 - 0.5 * x * y * y)
+        }
+        */
+
         let sum_rad = prop.radius.dis2();
 
-        let dis = dis_sqr.sqrt();
-
+        let disinv=1.0/dis_sqr.sqrt();
+        //let disinv=fast_inv_sqrt(dis_sqr);
         
         //0 if barely touching (not touching)
         //1 if directly on top of each other
-        let dd=(sum_rad-dis)/sum_rad;
+        //let dd=(sum_rad-dis)/sum_rad;
+        //let dd=sum_rad/sum_rad - dis/sum_rad;
+        //let dd=1 - dis/sum_rad;
+        let dd=1.0 - 1.0/(sum_rad*disinv);
+
 
         let ammount_touching=handle_repel(dd);
 
         let push_mag= ammount_touching*prop.collision_push;
         
-        let velocity_diff=bots[0].vel-bots[1].vel;
+        let velocity_diff=bota.vel-botb.vel;
 
         let drag=-prop.collision_drag*ammount_touching*velocity_diff.dot(offset);
             
         let push1=drag+push_mag;
         let push2=-drag-push_mag;
 
-        let push_force1=offset*(push1/dis);
-        let push_force2=offset*(push2/dis);
+        let push_force1=offset*(push1*disinv);
+        let push_force2=offset*(push2*disinv);
 
-        let viscous=velocity_diff*-prop.viscousity_coeff*ammount_touching;
+        let viscous=velocity_diff*(-prop.viscousity_coeff*ammount_touching);
 
-        bots[0].acc+=push_force1;
-        bots[0].acc+=viscous;
+        bota.acc+=push_force1;
+        bota.acc+=viscous;
 
-        bots[1].acc+=push_force2;
-        bots[1].acc+=viscous;
+        botb.acc+=push_force2;
+        botb.acc+=viscous;
     }
 
 
 
 
 
-
+    #[inline(always)]
     pub fn collide_mouse(&self,bot:&mut Bot,mouse:&Mouse){
         let prop=self;
         let offset = *mouse.get_midpoint() - bot.pos;
@@ -177,7 +188,7 @@ impl BotProp{
 }
 
 
-
+///A bot
 #[derive(Copy,Clone,Debug)]
 pub struct Bot{
     pub pos: Vec2<f32>,
@@ -192,37 +203,27 @@ impl crate::BorderCollideTrait for Bot{
     }
 }
 impl Bot{
-    pub fn apply(&mut self,bot:&Bot){
-        self.acc=bot.acc;
-    }
-
-
+    
+    #[inline(always)]
     pub fn create_bbox(&self,bot_scene:&BotProp)->Rect<f32>{
         let p=self.pos;
         let r=bot_scene.radius.dis();
         Rect::new(p.x-r,p.x+r,p.y-r,p.y+r)
     }
 
+    #[inline(always)]
     pub fn create_bbox_nan(&self,bot_scene:&BotProp)->Rect<NotNan<f32>>{
         self.create_bbox(bot_scene).inner_try_into().unwrap()
     }
   
+    #[inline(always)]
     pub fn new(pos:Vec2<f32>)->Bot{
         let vel=vec2(0.0,0.0);
         let acc=vec2(0.0,0.0);
         Bot{pos,vel,acc}
     }
 
-    #[inline]
-    pub fn pos(&self)->&Vec2<f32>{
-        &self.pos
-    }
-
-    #[inline]
-    pub fn vel(&self)->&Vec2<f32>{
-        &self.vel
-    }
-
+    #[inline(always)]
     pub fn push_away(&mut self,b:&mut Self,radius:f32,max_amount:f32){
         let mut diff=b.pos-self.pos;
 
@@ -250,7 +251,7 @@ impl Bot{
 }
 
 
-
+///Properties of a mouse
 #[derive(Copy,Clone,Debug)]
 pub struct MouseProp {
     pub radius: Dist,
@@ -258,7 +259,7 @@ pub struct MouseProp {
 }
 
 
-
+///Mouse object. Includes position of the mouse and its aabb.
 #[derive(Copy,Clone,Debug)]
 pub struct Mouse{
     pub mouse_prop: MouseProp,
@@ -302,7 +303,7 @@ pub struct Dist {
 }
 impl Dist {
 
-    #[inline]
+    #[inline(always)]
     pub fn new(dis: f32) -> Dist {
         let k = dis * 2.0;
 
@@ -315,19 +316,19 @@ impl Dist {
     }
 
     ///Returns the rdius
-    #[inline]
+    #[inline(always)]
     pub fn dis(&self) -> f32 {
         self.dis
     }
     
     ///Returns the cached radius*2.0
-    #[inline]
+    #[inline(always)]
     pub fn dis2(&self) -> f32 {
         self.dis2
     }
     
     ///Returns the cached radius.powi(2)
-    #[inline]
+    #[inline(always)]
     pub fn dis2_squared(&self) -> f32 {
         self.dis2_squared
     }

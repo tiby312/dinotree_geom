@@ -11,13 +11,5 @@ edition = "2018"
 
 
 [dependencies]
-num = "0.1.42"
-num-traits = "0.2"
-compt = "1.4.0"
-#axgeom = "1.0.5"
 axgeom = {path = "../axgeom"}
-ordered-float = "1.0.2"
 dists={path="../dists"}
-rand = "0.3"
-#TODO use
-#rand = "0.7.0"

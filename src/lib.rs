@@ -13,7 +13,6 @@ use axgeom::vec2;
 use axgeom::ordered_float::NotNan;
 use axgeom::Rect;
 use axgeom::num_traits::Float;
-use axgeom::num_traits::Num;
 use axgeom::num_traits::Zero;
 use core::ops::Neg;
 use axgeom::num_traits::NumAssign;
@@ -57,12 +56,6 @@ pub fn array2_inner_try_into<B:Copy,A:TryFrom<B>>(a:[B;2])->Result<[A;2],A::Erro
 }
 
 
-use core::ops::Sub;
-use core::ops::Add;
-pub fn rect_from_point<N:Copy+Sub<Output=N>+Add<Output=N>>(point:Vec2<N>,radius:Vec2<N>)->Rect<N>{
-    Rect::new(point.x-radius.x,point.x+radius.x,point.y-radius.y,point.y+radius.y)
-}
-
 
 
 ///Passed to gravitate.
@@ -75,9 +68,9 @@ pub trait GravityTrait {
 
 ///Returns the force to be exerted to the first object.
 ///The force to the second object can be retrieved simply by negating the first.
-pub fn gravitate<T:GravityTrait>(
+pub fn gravitate<T:GravityTrait,K:GravityTrait<N=T::N>>(
     a: &mut T,
-    b: &mut T,
+    b: &mut K,
     min: T::N,
     gravity_const: T::N
 ) -> Result<(), ErrTooClose> {
@@ -223,8 +216,11 @@ pub fn collide_with_border<B:BorderCollideTrait>(
 }
 
 
-pub fn stop_wall<N:MyNum>(pos: &mut Vec2<N>, dim: Vec2<N>){
-    let start = vec2(N::zero(),N::zero());
+#[inline(always)]
+pub fn stop_wall<N:MyNum>(pos: &mut Vec2<N>, rect: Rect<N>){
+    
+    let start = vec2(rect.x.left,rect.y.left);
+    let dim = vec2(rect.x.right,rect.y.right);
     if pos.x > dim.x{
         pos.x = dim.x;
     }else if pos.x < start.x{
@@ -349,6 +345,7 @@ pub struct Ray<N> {
     pub dir: Vec2<N>,
 }
 
+
 impl<N> Ray<N> {
     pub fn new(point:Vec2<N>,dir:Vec2<N>)->Ray<N>{
         Ray{point,dir}
@@ -428,62 +425,33 @@ pub fn ray_compute_intersection_tvalue<A: axgeom::AxisTrait,N:MyNum>(
 
 
 
-//We are making these generic for floats. Integers and floats behave fundamentally different.
-//Dont make generic math functions over both. Example sqrt() behaves differently.
-pub fn ray_intersects_box_int<N:MyNum+Ord>(ray:&Ray<N>, rect: &axgeom::Rect<N>) -> IntersectsBotResult<N>{
-    let point = ray.point;
-    let dir = ray.dir;
 
-    let ((x1, x2), (y1, y2)) = rect.get();
 
-    //val=t*m+y
-    let (tmin, tlen) = if dir.x != N::zero() {
-        let tx1 = (x1 - point.x) / dir.x;
-        let tx2 = (x2 - point.x) / dir.x;
-
-        (tx1.min(tx2), tx1.max(tx2))
-    } else if point.x < x1 || point.x > x2 {
-        return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
-    } else {
-        return IntersectsBotResult::Hit(N::zero()); //TODO i think this is wrong?
-    };
-
-    let (tmin, tlen) = if dir.y != N::zero() {
-        let ty1 = (y1 - point.y) / dir.y;
-        let ty2 = (y2 - point.y) / dir.y;
-
-        let k1=tmin.max(ty1.min(ty2));
-        let k2=tlen.min(ty1.max(ty2));
-        (k1,k2)
-    } else if point.y < y1 || point.y > y2 {
-        return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
-    } else {
-        (tmin, tlen)
-    };
-
-    //TODO figure out inequalities!
-    if tmin <= N::zero() && tlen >= N::zero() {
-        return IntersectsBotResult::Inside;
+fn ray_1d<N:Float>(point:N,dir:N,range:&axgeom::Range<N>)->IntersectsBotResult<N>{
+    use core::cmp::Ordering::*;
+    match range.left_or_right_or_contain(&point){
+        Less=>{
+            if dir<N::zero(){
+                IntersectsBotResult::NoHit
+            }else{
+                IntersectsBotResult::Hit(range.left-point)
+            }
+        },
+        Greater=>{
+            if dir>N::zero(){
+                IntersectsBotResult::NoHit
+            }else{
+                IntersectsBotResult::Hit(point-range.right)
+            }
+        },
+        Equal=>{
+            IntersectsBotResult::Inside
+        }
     }
-
-    if tmin <= N::zero() && tlen < N::zero() {
-        return IntersectsBotResult::NoHit;
-    }
-
-    if tlen >= tmin {
-        IntersectsBotResult::Hit(tmin)
-    } else {
-        IntersectsBotResult::NoHit
-    }
-
 }
 
-
-
-
-
 ///Returns if a ray intersects a box.
-pub fn ray_intersects_box<N:Float>(ray:&Ray<N>, rect: &axgeom::Rect<N>) -> IntersectsBotResult<N> {
+pub fn ray_intersects_box<N:Float+core::fmt::Debug>(ray:&Ray<N>, rect: &axgeom::Rect<N>) -> IntersectsBotResult<N> {
     let point = ray.point;
     let dir = ray.dir;
 
@@ -496,9 +464,10 @@ pub fn ray_intersects_box<N:Float>(ray:&Ray<N>, rect: &axgeom::Rect<N>) -> Inter
 
         (tx1.min(tx2), tx1.max(tx2))
     } else if point.x < x1 || point.x > x2 {
+        //dbg!(point,rect,dir);
         return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
     } else {
-        return IntersectsBotResult::Hit(N::zero()); //TODO i think this is wrong?
+        return ray_1d(point.y,dir.y,&rect.y);
     };
 
     let (tmin, tlen) = if dir.y != N::zero() {
