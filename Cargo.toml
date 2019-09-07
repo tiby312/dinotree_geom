@@ -11,5 +11,6 @@ edition = "2018"
 
 
 [dependencies]
-axgeom = {path = "../axgeom"}
+axgeom = "1.2.*"
+roots = "0.0.5"
 dists={path="../dists"}

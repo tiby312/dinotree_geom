@@ -450,6 +450,72 @@ fn ray_1d<N:Float>(point:N,dir:N,range:&axgeom::Range<N>)->IntersectsBotResult<N
     }
 }
 
+
+
+use roots::*;
+use roots;
+pub fn ray_intersects_circle<N:Float+roots::FloatType>(ray:&Ray<N>,center:Vec2<N>,radius:N)->IntersectsBotResult<N>{
+    //https://math.stackexchange.com/questions/311921/get-location-of-vector-circle-intersection
+    //circle
+    //(x-center.x)^2+(y-center.y)^2=r2
+    //ray
+    //x(t)=ray.dir.x*t+ray.point.x
+    //y(t)=ray.dir.y*t+ray.point.y
+    //
+    //solve for t.
+    //
+    //
+    //we get:
+    //
+    //𝑎𝑡^2+𝑏𝑡+𝑐=0
+    //
+    //
+    //
+    //
+    let zz=<N as FloatType>::zero();
+    let one=<N as FloatType>::one();
+    let two=<N as FloatType>::two();
+
+    let a=ray.dir.x.powi(2)+ray.dir.y.powi(2);
+    let b=two*ray.dir.x*(ray.point.x - center.x) + two*ray.dir.y*(ray.point.y-center.y);
+    let c=(ray.point.x-center.x).powi(2)+(ray.point.y-center.y).powi(2)-radius.powi(2);
+
+    match find_roots_quadratic(a,b,c){
+        Roots::No(_)=>{
+            IntersectsBotResult::NoHit
+        },
+        Roots::One([a])=>{
+            if a<zz{
+                IntersectsBotResult::NoHit
+            }else{
+                IntersectsBotResult::Hit(a)
+            }
+        },
+        Roots::Two([a,b])=>{
+
+            let (closer,further)=if a<b{
+                (a,b)
+            }else{
+                (b,a)
+            };
+
+            if closer<zz && further<zz{
+                IntersectsBotResult::NoHit
+            }else if closer<zz && further>zz{
+                IntersectsBotResult::Inside
+            }else{
+                IntersectsBotResult::Hit(closer)
+            }
+
+        },
+        _=>{
+            unreachable!()
+        }
+    }
+
+}
+
+
 ///Returns if a ray intersects a box.
 pub fn ray_intersects_box<N:Float+core::fmt::Debug>(ray:&Ray<N>, rect: &axgeom::Rect<N>) -> IntersectsBotResult<N> {
     let point = ray.point;
