@@ -1,6 +1,6 @@
 [package]
 name = "duckduckgeo"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Ken Reed <kenakioreed@gmail.com>"]
 description = "2d geom library"
 license = "MIT/Apache-2.0"
@@ -11,6 +11,6 @@ edition = "2018"
 
 
 [dependencies]
-axgeom = "1.2.*"
+axgeom = "1.2.1"
 roots = "0.0.5"
-dists={path="../dists"}
+dists="0.1.6"
