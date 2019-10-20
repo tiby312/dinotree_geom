@@ -78,6 +78,48 @@ pub struct BotProp {
 
 impl BotProp{
 
+    #[inline(always)]
+    pub fn liquid(&self,a:&mut Bot,b:&mut Bot){
+        
+        let diff=b.pos-a.pos;
+
+        let dis_sqr=diff.magnitude2();
+
+        if dis_sqr<0.0001{
+            a.acc+=vec2(0.1,0.0);
+            b.acc-=vec2(0.1,0.0);
+            return;
+        }
+
+
+        if dis_sqr >= self.radius.dis2_squared(){
+            return;
+        }
+
+
+        let dis=dis_sqr.sqrt();
+
+        //d is zero if barely touching, 1 is overlapping.
+        //d grows linearly with position of bots
+        let d=1.0- (dis/(self.radius.dis2()));
+
+
+        let spring_force_mag=-(d-0.5)*0.02;
+
+
+        let velociy_diff=b.vel-a.vel;
+        let damping_ratio=0.0002;
+        let spring_dampen=velociy_diff.dot(diff)*(1./dis)*damping_ratio;
+
+
+        let spring_force=diff*(1./dis)*(spring_force_mag + spring_dampen );
+
+        a.acc+=spring_force;
+        b.acc-=spring_force;
+
+    }
+
+
     //#[inline(always)]
     pub fn collide(&self,bota:&mut Bot,botb:&mut Bot){
 
@@ -105,6 +147,13 @@ impl BotProp{
         if dis_sqr >= prop.radius.dis2_squared() {
             //They not touching (bots are circular).
             return ;
+        }
+
+
+        if dis_sqr<0.0001{
+            bota.acc+=vec2(0.1,0.0);
+            botb.acc-=vec2(0.1,0.0);
+            return;
         }
 
         //At this point, we know they collide!!!!
@@ -198,6 +247,7 @@ pub struct Bot{
 
 impl crate::BorderCollideTrait for Bot{
     type N=f32;
+    #[inline(always)]
     fn pos_vel_mut(&mut self)->(&mut Vec2<f32>,&mut Vec2<f32>){
         (&mut self.pos,&mut self.vel)
     }
@@ -248,6 +298,7 @@ impl Bot{
 
         }
     }
+
 }
 
 
@@ -267,6 +318,7 @@ pub struct Mouse{
     pub rect:axgeom::Rect<f32>
 }
 impl Mouse{
+    #[inline(always)]
     pub fn new(pos:Vec2<f32>,prop:&MouseProp)->Mouse{
         let mut m:Mouse=unsafe{std::mem::uninitialized()};
         m.mouse_prop= *prop;
@@ -274,15 +326,22 @@ impl Mouse{
         m
     }
 
+    #[inline(always)]
     pub fn get_rect(&self)->&axgeom::Rect<f32>{
         &self.rect
     }
+
+    #[inline(always)]
     pub fn get_midpoint(&self)->&Vec2<f32>{
         &self.midpoint
     }
+
+    #[inline(always)]
     pub fn get_radius(&self)->f32{
         self.mouse_prop.radius.dis()
     }
+
+    #[inline(always)]
     pub fn move_to(&mut self,pos:Vec2<f32>){
         self.midpoint= pos;
         let p=self.midpoint;
