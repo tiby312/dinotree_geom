@@ -6,62 +6,6 @@ use dists;
 use axgeom::Vec2;
 use axgeom::vec2;
 
-pub struct BotScene{
-    pub bot_prop:BotProp,
-    pub bots:Vec<Bot>
-}
-
-pub struct BotSceneBuilder{
-    grow:f32,
-    radius:f32,
-    num:usize,
-    bot_radius:f32
-}
-impl BotSceneBuilder{
-    pub fn new(num:usize)->BotSceneBuilder{
-        BotSceneBuilder{grow:0.2,radius:17.0,num,bot_radius:5.0}
-    }
-
-    pub fn with_grow(&mut self,grow:f32)->&mut Self{
-        self.grow=grow;
-        self
-    }
-    pub fn with_num(&mut self,num:usize)->&mut Self{
-        self.num=num;
-        self
-    }
-
-    pub fn with_radius_of(&mut self,radius:f32)->&mut Self{
-        self.radius=radius;
-        self
-    }
-
-    pub fn build(&mut self)->BotScene{
-        
-        let spiral=dists::spiral::Spiral::new([0.0,0.0],self.radius,self.grow);
-        
-
-
-        let bots:Vec<Bot>=spiral.take(self.num).map(|pos|{
-            Bot::new(pos)
-        }).collect();
-
-        let bot_prop=BotProp{
-            radius:Dist::new(self.bot_radius),
-            collision_push:0.1,
-            collision_drag:0.1,
-            minimum_dis_sqr:0.0001,
-            viscousity_coeff:0.1};
-
-        BotScene{bot_prop,bots}
-    }
-}
-
-
-
-
-
-
 
 
 
@@ -77,6 +21,25 @@ pub struct BotProp {
 
 
 impl BotProp{
+
+    #[inline(always)]
+    pub fn create_bbox_i32(&self,pos:Vec2<i32>)->Rect<i32>{
+        let p=pos;
+        let r=self.radius.dis() as i32;
+        Rect::new(p.x-r,p.x+r,p.y-r,p.y+r)
+    }
+
+    #[inline(always)]
+    pub fn create_bbox(&self,pos:Vec2<f32>)->Rect<f32>{
+        let p=pos;
+        let r=self.radius.dis();
+        Rect::new(p.x-r,p.x+r,p.y-r,p.y+r)
+    }
+
+    #[inline(always)]
+    pub fn create_bbox_nan(&self,pos:Vec2<f32>)->Rect<NotNan<f32>>{
+        self.create_bbox(pos).inner_try_into().unwrap()
+    }
 
     #[inline(always)]
     pub fn liquid(&self,a:&mut Bot,b:&mut Bot){
@@ -393,3 +356,74 @@ impl Dist {
     }
 }
 
+
+
+
+pub struct BotScene<T>{
+    pub bot_prop:BotProp,
+    pub bots:Vec<T>
+}
+
+
+#[derive(Copy,Clone,Debug)]
+pub struct BotSceneBuilder{
+    grow:f32,
+    radius:f32,
+    num:usize,
+    bot_radius:f32
+}
+impl BotSceneBuilder{
+    pub fn new(num:usize)->BotSceneBuilder{
+        BotSceneBuilder{grow:0.2,radius:17.0,num,bot_radius:5.0}
+    }
+
+    pub fn with_grow(&mut self,grow:f32)->&mut Self{
+        self.grow=grow;
+        self
+    }
+    pub fn with_num(&mut self,num:usize)->&mut Self{
+        self.num=num;
+        self
+    }
+
+    pub fn with_radius_of(&mut self,radius:f32)->&mut Self{
+        self.radius=radius;
+        self
+    }
+
+    pub fn build_specialized<T>(&mut self,mut func:impl FnMut(Vec2<f32>)->T)->BotScene<T>{
+        let spiral=dists::spiral::Spiral::new([0.0,0.0],self.radius,self.grow);
+        
+        let bots:Vec<T>=spiral.take(self.num).map(|pos|{
+            func(pos)
+        }).collect();
+
+        let bot_prop=BotProp{
+            radius:Dist::new(self.bot_radius),
+            collision_push:0.1,
+            collision_drag:0.1,
+            minimum_dis_sqr:0.0001,
+            viscousity_coeff:0.1};
+
+        BotScene{bot_prop,bots}
+    }
+    pub fn build(&mut self)->BotScene<Bot>{
+        
+        let spiral=dists::spiral::Spiral::new([0.0,0.0],self.radius,self.grow);
+        
+
+
+        let bots:Vec<Bot>=spiral.take(self.num).map(|pos|{
+            Bot::new(pos)
+        }).collect();
+
+        let bot_prop=BotProp{
+            radius:Dist::new(self.bot_radius),
+            collision_push:0.1,
+            collision_drag:0.1,
+            minimum_dis_sqr:0.0001,
+            viscousity_coeff:0.1};
+
+        BotScene{bot_prop,bots}
+    }
+}
