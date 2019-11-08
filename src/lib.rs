@@ -6,6 +6,7 @@
 extern crate axgeom;
 
 
+///2d bot library where a bot is a 2d particle with mass.
 pub mod bot;
 
 use axgeom::Vec2;
@@ -18,16 +19,20 @@ use core::ops::Neg;
 use axgeom::num_traits::NumAssign;
 
 
+///Basic Number Trait
 pub trait MyNum: Zero+Copy+NumAssign + PartialOrd + Neg<Output=Self>{
 }
 impl<T:Zero+Copy+NumAssign+PartialOrd+Neg<Output=Self>> MyNum for T{}
-//use cgmath::num_traits::NumCast;
 
+
+
+///NotNan f64
 pub type F64n=NotNan<f64>;
+///NotNan f64
 pub type F32n=NotNan<f32>;
 
 
-
+///convert an array of elements of type B to type A.
 pub fn array2_inner_into<B:Copy,A:From<B>>(a:[B;2])->[A;2]{
     let x=A::from(a[0]);
     let y=A::from(a[1]);
@@ -36,6 +41,7 @@ pub fn array2_inner_into<B:Copy,A:From<B>>(a:[B;2])->[A;2]{
 
 use core::convert::TryFrom;
 
+///convert an array of elements of type B to type A.
 pub fn array2_inner_try_into<B:Copy,A:TryFrom<B>>(a:[B;2])->Result<[A;2],A::Error>{
     let x=A::try_from(a[0]);
     let y=A::try_from(a[1]);
@@ -178,11 +184,13 @@ pub fn repel<B: RepelTrait>(
 
 
 
+///Generic trait to collide with border
 pub trait BorderCollideTrait{
     type N: MyNum;
     fn pos_vel_mut(&mut self) -> (&mut Vec2<Self::N>,&mut Vec2<Self::N>);
 }
 
+///Collides and bounces an object with a border
 pub fn collide_with_border<B:BorderCollideTrait>(
         a:&mut B,rect2:&axgeom::Rect<B::N>,drag:B::N){
 
@@ -216,6 +224,7 @@ pub fn collide_with_border<B:BorderCollideTrait>(
 }
 
 
+///Forces a position to be within the specified rect.
 #[inline(always)]
 pub fn stop_wall<N:MyNum>(pos: &mut Vec2<N>, rect: Rect<N>){
     
@@ -379,7 +388,7 @@ impl<N> Ray<N> {
 
 
 
-//Given a ray and an axis aligned line, return the tvalue,and x coordinate
+///Given a ray and an axis aligned line, return the tvalue,and x coordinate
 pub fn ray_compute_intersection_tvalue<A: axgeom::AxisTrait,N:MyNum>(
     ray:&Ray<N>,
     axis: A,
@@ -454,6 +463,7 @@ fn ray_1d<N:Float>(point:N,dir:N,range:&axgeom::Range<N>)->IntersectsBotResult<N
 
 use roots::*;
 use roots;
+///Checks if a ray intersects a circle.
 pub fn ray_intersects_circle<N:Float+roots::FloatType>(ray:&Ray<N>,center:Vec2<N>,radius:N)->IntersectsBotResult<N>{
     //https://math.stackexchange.com/questions/311921/get-location-of-vector-circle-intersection
     //circle

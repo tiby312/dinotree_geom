@@ -5,6 +5,8 @@ use axgeom::*;
 
 
 
+///Properties that help express a group of bots.
+///For example, their radius.
 #[derive(Copy,Clone,Debug)]
 pub struct BotProp {
     pub radius: Dist,
@@ -196,7 +198,7 @@ impl BotProp{
 }
 
 
-///A bot
+///A bot with 2d position,velocity,acceleration
 #[derive(Copy,Clone,Debug)]
 pub struct Bot{
     pub pos: Vec2<f32>,
@@ -352,13 +354,13 @@ impl Dist {
 
 
 
-
+///A group of bots and a property object describing them.
 pub struct BotScene<T>{
     pub bot_prop:BotProp,
     pub bots:Vec<T>
 }
 
-
+///Builder to build a bot scene.
 #[derive(Copy,Clone,Debug)]
 pub struct BotSceneBuilder{
     grow:f32,
