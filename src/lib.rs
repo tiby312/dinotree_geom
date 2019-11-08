@@ -473,7 +473,6 @@ pub fn ray_intersects_circle<N:Float+roots::FloatType>(ray:&Ray<N>,center:Vec2<N
     //
     //
     let zz=<N as FloatType>::zero();
-    let one=<N as FloatType>::one();
     let two=<N as FloatType>::two();
 
     let a=ray.dir.x.powi(2)+ray.dir.y.powi(2);

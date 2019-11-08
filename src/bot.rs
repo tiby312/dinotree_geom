@@ -1,11 +1,7 @@
-
-
-use axgeom::Rect;
 use axgeom::ordered_float::*;
 use dists;
-use axgeom::Vec2;
-use axgeom::vec2;
-
+use axgeom::*;
+        
 
 
 
@@ -282,11 +278,9 @@ pub struct Mouse{
 }
 impl Mouse{
     #[inline(always)]
-    pub fn new(pos:Vec2<f32>,prop:&MouseProp)->Mouse{
-        let mut m:Mouse=unsafe{std::mem::uninitialized()};
-        m.mouse_prop= *prop;
-        m.move_to(pos);
-        m
+    pub fn new(midpoint:Vec2<f32>,mouse_prop:MouseProp)->Mouse{
+        let r=vec2same(mouse_prop.radius.dis());
+        Mouse{mouse_prop,midpoint,rect:Rect::from_point(midpoint,r)}
     }
 
     #[inline(always)]
