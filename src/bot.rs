@@ -213,7 +213,7 @@ impl Bot {
 
         let dis = diff.magnitude2().sqrt();
 
-        if dis < 0.000001 {
+        if dis < 0.000_001 {
             return;
         }
 
