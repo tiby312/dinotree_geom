@@ -2,11 +2,16 @@
 //! Provides some useful 2d geometry functions.
 //!
 //! Why the name? Not sure. Duck Duck Goose.
+#[macro_use]
+extern crate more_asserts;
+
 
 extern crate axgeom;
 
 ///2d bot library where a bot is a 2d particle with mass.
 pub mod bot;
+
+pub mod grid;
 
 use axgeom::num_traits::Float;
 use axgeom::num_traits::NumAssign;
@@ -338,6 +343,8 @@ impl<N> Ray<N> {
     }
 }
 
+
+
 ///Given a ray and an axis aligned line, return the tvalue,and x coordinate
 pub fn ray_compute_intersection_tvalue<A: axgeom::AxisTrait, N: MyNum>(
     ray: &Ray<N>,
@@ -453,6 +460,11 @@ pub fn ray_intersects_circle<N: Float + roots::FloatType>(
         _ => unreachable!(),
     }
 }
+
+
+
+
+
 
 ///Returns if a ray intersects a box.
 pub fn ray_intersects_box<N: Float + core::fmt::Debug>(

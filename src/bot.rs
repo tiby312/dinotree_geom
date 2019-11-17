@@ -188,6 +188,24 @@ impl crate::BorderCollideTrait for Bot {
     }
 }
 impl Bot {
+
+    #[inline(always)]
+    pub fn move_to_point(&mut self,target:Vec2<f32>,radius:f32) -> bool{
+        let diff=target-self.vel*20.0-self.pos;
+        let lens=diff.magnitude2();
+        if lens>0.001{
+            self.acc+=diff*(0.2/lens.sqrt());
+        }
+        lens<radius
+    }
+
+    #[inline(always)]
+    pub fn update(&mut self){
+        let bot=self;
+        bot.vel+=bot.acc;    
+        bot.pos+=bot.vel;
+        bot.acc=vec2(0.0,0.0);
+    }
     #[inline(always)]
     pub fn create_bbox(&self, bot_scene: &BotProp) -> Rect<f32> {
         let p = self.pos;
