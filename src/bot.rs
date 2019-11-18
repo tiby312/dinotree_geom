@@ -191,10 +191,10 @@ impl Bot {
 
     #[inline(always)]
     pub fn move_to_point(&mut self,target:Vec2<f32>,radius:f32) -> bool{
-        let diff=target-self.vel*20.0-self.pos;
+        let diff=target-self.pos-self.vel*20.0;
         let lens=diff.magnitude2();
         if lens>0.001{
-            self.acc+=diff*(0.2/lens.sqrt());
+            self.acc+=diff*(0.1/lens.sqrt());
         }
         lens<radius
     }
@@ -202,8 +202,8 @@ impl Bot {
     #[inline(always)]
     pub fn update(&mut self){
         let bot=self;
-        bot.vel+=bot.acc;    
         bot.pos+=bot.vel;
+        bot.vel+=bot.acc;    
         bot.acc=vec2(0.0,0.0);
     }
     #[inline(always)]

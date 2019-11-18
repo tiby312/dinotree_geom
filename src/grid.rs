@@ -43,7 +43,7 @@ impl CardDir{
             }
         }
     }
-    fn into_two_bits(self)->u8{
+    pub fn into_two_bits(self)->u8{
         use CardDir::*;
         match self{
             U=>{
@@ -293,6 +293,7 @@ pub mod raycast{
     use crate::grid::*;
     use crate::Ray;
 
+    #[derive(Copy,Clone,Debug)]
     pub struct CollideCellEvent{
         //Cell colliding with
         pub cell:Vec2<GridNum>,
@@ -316,13 +317,9 @@ pub mod raycast{
             let next_dir_sign=vec2(if ray.dir.x>0.0{1}else{-1},if ray.dir.y>0.0{1}else{-1});
             
             let current_grid=grid.to_grid(ray.point);
-            //dbg!(current_grid,ray);
 
-            if ray.point.x<0.0 || ray.point.y<0.0{
-                return None
-            }
 
-            if ray.dir.x*ray.dir.x+ray.dir.y*ray.dir.y>0.0{
+            if ray.dir.magnitude2()>0.0{
                 Some(RayCaster{grid,ray,dir_sign,next_dir_sign,current_grid,tval:0.0})
             }else{
                 None
@@ -373,16 +370,20 @@ pub mod raycast{
             let tvalx=(next_grid_pos.x-ray.point.x)/ray.dir.x;
             let tvaly=(next_grid_pos.y-ray.point.y)/ray.dir.y;
 
-
+            
+            //dbg!(tvalx,tvaly);
+            //TODO test that this all works with negative numbers!!!
+            /*
             if tvalx.is_finite(){
                 assert_ge!(tvalx,0.0,"{:?}",(ray,self.current_grid,next_grid,next_grid_pos));
             }
             if tvaly.is_finite(){
                 assert_ge!(tvaly,0.0,"{:?}",(ray,self.current_grid,next_grid,next_grid_pos));
             }
+            */
 
             let mut dir_hit;
-            if tvalx<=tvaly || tvaly.is_infinite() || tvaly.is_nan(){
+            if (tvalx.is_finite() && tvalx<=tvaly) || tvaly.is_infinite() || tvaly.is_nan(){
                 if dir_sign.x==1{
                     //hit left side
                     dir_hit=CardDir::L;
@@ -394,19 +395,20 @@ pub mod raycast{
                 self.tval=tvalx;
                 self.current_grid.x+=self.next_dir_sign.x;
             }else if tvaly<tvalx  || tvalx.is_infinite() || tvalx.is_nan(){
+
                 if dir_sign.y==1{
                     //hit top side
                     dir_hit=CardDir::U;
                 }else{
                     //hit bottom side
-                    dir_hit=CardDir::L;
+                    dir_hit=CardDir::D;
                 }
                 self.tval=tvaly;
                 self.current_grid.y+=self.next_dir_sign.y;
             }else{
                 unreachable!("{:?}, {:?}",(tvalx,tvaly),ray);
             }
-            Some(CollideCellEvent{tval:self.tval,cell:next_grid,dir_hit})
+            Some(CollideCellEvent{tval:self.tval,cell:self.current_grid,dir_hit})
         }
     }
 }
@@ -508,3 +510,6 @@ impl GridViewPort{
     }
     */
 }
+
+
+
