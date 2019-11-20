@@ -94,9 +94,9 @@ impl BotProp {
             return;
         }
 
-        if dis_sqr < 10.0*10.0 {
-            bota.acc += vec2(0.1, 0.0);
-            botb.acc -= vec2(0.1, 0.0);
+        if dis_sqr < 0.00001 {
+            bota.acc += vec2(0.1, 0.1);
+            botb.acc -= vec2(0.1, 0.1);
             return;
         }
 
