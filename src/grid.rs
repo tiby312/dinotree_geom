@@ -235,6 +235,7 @@ impl Grid2D {
 pub type WorldNum=f32;
 
 
+/*
 #[test]
 fn testy(){
     let mut inner=Grid2D::new(vec2(20,20));
@@ -249,7 +250,7 @@ fn testy(){
     //dbg!(back);
     //panic!("yo");
 }
-
+*/
 
 use core::fmt;
 impl fmt::Debug for Grid2D {
@@ -288,6 +289,65 @@ pub enum GridRayCastResult{
 }
 
 
+#[test]
+fn test_raycast(){
+    use crate::*;
+    use self::raycast::*;
+    use core::iter::Iterator;
+
+    let grid_dim=vec2(16,9)*2;
+        
+    let mut grid=GridViewPort{origin:vec2(0.0,0.0),spacing:vec2(1920./grid_dim.x as f32,1080./grid_dim.y as f32)};
+
+    let point=grid.origin+vec2(grid.spacing.x,grid.spacing.y+0.5);
+
+
+    assert_eq!(grid.to_grid(point),vec2(1,1));
+
+    let ray=Ray{point,dir:vec2(1.0,0.0)};
+    let k=RayCaster::new(&grid,ray).unwrap().next().unwrap();
+    assert_eq!(grid.to_grid_mod(ray.point).x,0.0);
+    assert_eq!(k.tval,0.0);
+    assert_eq!(k.cell,vec2(2,1));
+
+
+
+    let ray=Ray{point,dir:vec2(-1.0,0.0)};
+    let k=RayCaster::new(&grid,ray).unwrap().next().unwrap();
+    
+    assert_eq!(grid.to_grid_mod(ray.point).x,0.0);
+    assert_eq!(k.tval,0.0);
+    assert_eq!(k.cell,vec2(1,1));
+
+
+
+
+
+
+
+    /*
+    let point=grid.origin+vec2(grid.spacing.x+0.5,grid.spacing.y);
+
+    let ray=Ray{point,dir:vec2(0.0,1.0)};
+    let k=RayCaster::new(&grid,ray).unwrap().next().unwrap();
+    assert_eq!(grid.to_grid_mod(ray.point).y,0.0);
+    assert_eq!(k.tval,0.0);
+    assert_eq!(k.cell,vec2(1,2));
+
+
+    let ray=Ray{point,dir:vec2(0.0,-1.0)};
+    let k=RayCaster::new(&grid,ray).unwrap().next().unwrap();
+    
+    assert_eq!(grid.to_grid_mod(ray.point).y,0.0);
+    assert_eq!(k.tval,0.0);
+    assert_eq!(k.cell,vec2(1,1));
+    */
+
+
+
+}
+
+
 pub mod raycast{
     use core::iter::*;
     use crate::grid::*;
@@ -316,7 +376,23 @@ pub mod raycast{
             let dir_sign=vec2(if ray.dir.x>0.0{1}else{0},if ray.dir.y>0.0{1}else{0});
             let next_dir_sign=vec2(if ray.dir.x>0.0{1}else{-1},if ray.dir.y>0.0{1}else{-1});
             
-            let current_grid=grid.to_grid(ray.point);
+            let mut current_grid=grid.to_grid(ray.point);
+
+
+            //dbg!(ray);
+
+            if grid.to_grid_mod(ray.point).x==0.0{
+                if dir_sign.x==1{
+                    current_grid.x-=1;
+                }
+            }
+
+            if grid.to_grid_mod(ray.point).y==0.0{
+                if dir_sign.y==1{
+                    current_grid.y-=1;
+                }
+            }
+
 
 
             if ray.dir.magnitude2()>0.0{
@@ -334,9 +410,22 @@ pub mod raycast{
             let ray=&self.ray;
             let dir_sign=self.dir_sign;
 
-            let next_grid=self.current_grid+dir_sign;
-            let next_grid_pos=grid.to_world_topleft(next_grid);
+            let mut next_grid=self.current_grid+dir_sign;
+            
+            let pp =grid.to_grid_mod(self.ray.point);
+            
+            //TODO see test
+            /*
+            if pp.x==0.0{
+                next_grid.x-=dir_sign.x;
+            }
+            if pp.y==0.0{
+                next_grid.y-=dir_sign.y;
+            }
+            */
 
+
+            let next_grid_pos=grid.to_world_topleft(next_grid);
 
             //A ray can be described as follows:
             //rx(t)=ray.dir.x*tval+ray.point.x
@@ -370,6 +459,7 @@ pub mod raycast{
             let tvalx=(next_grid_pos.x-ray.point.x)/ray.dir.x;
             let tvaly=(next_grid_pos.y-ray.point.y)/ray.dir.y;
 
+            //dbg!(next_grid_pos.x,ray.point.x,ray.dir.x);
             
             //dbg!(tvalx,tvaly);
             //TODO test that this all works with negative numbers!!!
@@ -381,9 +471,8 @@ pub mod raycast{
                 assert_ge!(tvaly,0.0,"{:?}",(ray,self.current_grid,next_grid,next_grid_pos));
             }
             */
-
             let mut dir_hit;
-            if (tvalx.is_finite() && tvalx<=tvaly) || tvaly.is_infinite() || tvaly.is_nan(){
+            if (tvalx.is_finite() && tvalx<tvaly) || tvaly.is_infinite() || tvaly.is_nan(){
                 if dir_sign.x==1{
                     //hit left side
                     dir_hit=CardDir::L;
@@ -393,8 +482,19 @@ pub mod raycast{
                     //hit right side
                 }
                 self.tval=tvalx;
+
                 self.current_grid.x+=self.next_dir_sign.x;
-            }else if tvaly<tvalx  || tvalx.is_infinite() || tvalx.is_nan(){
+
+                /*
+                if pp.x==0.0 && dir_sign.x==1{
+                    self.tval-=next_grid_pos.x-ray.point.x;
+                }
+                if pp.x==0.0 && dir_sign.x==0{
+                    return Some(CollideCellEvent{tval:self.tval,cell:self.current_grid+vec2(1,0),dir_hit})
+                }
+                */
+                
+            }else if tvaly<=tvalx  || tvalx.is_infinite() || tvalx.is_nan(){
 
                 if dir_sign.y==1{
                     //hit top side
@@ -405,6 +505,21 @@ pub mod raycast{
                 }
                 self.tval=tvaly;
                 self.current_grid.y+=self.next_dir_sign.y;
+                /*
+                if pp.y==0.0 && dir_sign.y==1{
+                    self.tval-=next_grid_pos.y-ray.point.y;
+                }
+                */
+                /*
+                if pp.y==0.0 && dir_sign.y==1{
+                    self.tval-=next_grid_pos.y-ray.point.y;
+                }
+                if pp.y==0.0 && dir_sign.y==0{
+                    return Some(CollideCellEvent{tval:self.tval,cell:self.current_grid+vec2(0,1),dir_hit})
+                }
+                */
+                
+                
             }else{
                 unreachable!("{:?}, {:?}",(tvalx,tvaly),ray);
             }
@@ -431,84 +546,22 @@ impl GridViewPort{
         pos.inner_as().scale(self.spacing)+self.origin+self.spacing/2.0
     }
     
+    pub fn to_grid_mod(&self,pos:Vec2<WorldNum>)->Vec2<WorldNum>{
+        let k = self.to_grid(pos);
+        let k = k.inner_as().scale(self.spacing);
+        pos-k
+    }
     pub fn to_grid(&self,pos:Vec2<WorldNum>)->Vec2<GridNum>{
     
         let result = (pos-self.origin).inv_scale(self.spacing);
 
         result.inner_as()
-
-
-        /*
-        let xdim = self.grid_dim.x;
-        let ydim = self.grid_dim.y;
-
-        let dim: &Rect<f32> = &self.dim;
-
-        let pos=pos-dim.top_left();
-        //https://math.stackexchange.com/questions/528501/how-to-determine-which-cell-in-a-grid-a-point-belongs-to
-        
-        let x = pos.x;
-        let y = pos.y;
-        let width = dim.x.right - dim.x.left;
-        let height = dim.y.right - dim.y.left;
-
-        let i = (x * (xdim as f32 / width))
-            .floor()
-            .max(0.0)
-            .min((xdim - 1) as f32);
-        let j = (y * (ydim as f32 / height))
-            .floor()
-            .max(0.0)
-            .min((ydim - 1) as f32);
-        let i = i as isize;
-        let j = j as isize;
-
-       
-        vec2(i,j)
-        */
     }
 
 
     pub fn cell_radius(&self)->Vec2<WorldNum>{
         self.spacing
-        /*
-        let spacingx=(self.dim.x.right-self.dim.x.left)/self.grid_dim.x as f32;
-        let spacingy=(self.dim.y.right-self.dim.y.left)/self.grid_dim.y as f32;
-        vec2(spacingx,spacingy)
-        */
     }
-    /*
-    pub fn convert_to_world_topleft(&self,val:Vec2<GridNum>)->Result<Vec2<WorldNum>,ToWorldError>{
-        if val.x>=self.grid_dim.x || val.y>=self.grid_dim.y{
-            Err(ToWorldError{dim:self.grid_dim,pos:val})
-        }else{
-            let top_left=vec2(self.dim.x.left,self.dim.y.left);
-
-            let spacingx=(self.dim.x.right-self.dim.x.left)/self.grid_dim.x as f32;
-            let spacingy=(self.dim.y.right-self.dim.y.left)/self.grid_dim.y as f32;
-            
-
-            let val=vec2(spacingx * val.x as f32,spacingy*val.y as f32);
-            //let half=vec2(spacingx,spacingy)/2.0;
-            Ok(top_left+val)
-        }
-    }
-    pub fn convert_to_world_center(&self,val:Vec2<GridNum>)->Result<Vec2<WorldNum>,ToWorldError>{
-        if val.x>=self.grid_dim.x || val.y>=self.grid_dim.y{
-            Err(ToWorldError{dim:self.grid_dim,pos:val})
-        }else{
-            let top_left=vec2(self.dim.x.left,self.dim.y.left);
-
-            let spacingx=(self.dim.x.right-self.dim.x.left)/self.grid_dim.x as f32;
-            let spacingy=(self.dim.y.right-self.dim.y.left)/self.grid_dim.y as f32;
-            
-
-            let val=vec2(spacingx * val.x as f32,spacingy*val.y as f32);
-            let half=vec2(spacingx,spacingy)/2.0;
-            Ok(top_left+val+half)
-        }
-    }
-    */
 }
 
 

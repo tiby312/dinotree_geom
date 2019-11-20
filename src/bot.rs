@@ -94,7 +94,7 @@ impl BotProp {
             return;
         }
 
-        if dis_sqr < 0.0001 {
+        if dis_sqr < 10.0*10.0 {
             bota.acc += vec2(0.1, 0.0);
             botb.acc -= vec2(0.1, 0.0);
             return;
@@ -191,10 +191,10 @@ impl Bot {
 
     #[inline(always)]
     pub fn move_to_point(&mut self,target:Vec2<f32>,radius:f32) -> bool{
-        let diff=target-self.pos-self.vel*20.0;
+        let diff=target-self.pos-self.vel*40.0;
         let lens=diff.magnitude2();
         if lens>0.001{
-            self.acc+=diff*(0.1/lens.sqrt());
+            self.acc+=diff*(0.03/lens.sqrt());
         }
         lens<radius
     }
