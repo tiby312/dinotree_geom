@@ -310,40 +310,12 @@ fn test_raycast(){
     assert_eq!(k.tval,0.0);
     assert_eq!(k.cell,vec2(2,1));
 
-
-
     let ray=Ray{point,dir:vec2(-1.0,0.0)};
     let k=RayCaster::new(&grid,ray).unwrap().next().unwrap();
     
     assert_eq!(grid.to_grid_mod(ray.point).x,0.0);
     assert_eq!(k.tval,0.0);
     assert_eq!(k.cell,vec2(1,1));
-
-
-
-
-
-
-
-    /*
-    let point=grid.origin+vec2(grid.spacing.x+0.5,grid.spacing.y);
-
-    let ray=Ray{point,dir:vec2(0.0,1.0)};
-    let k=RayCaster::new(&grid,ray).unwrap().next().unwrap();
-    assert_eq!(grid.to_grid_mod(ray.point).y,0.0);
-    assert_eq!(k.tval,0.0);
-    assert_eq!(k.cell,vec2(1,2));
-
-
-    let ray=Ray{point,dir:vec2(0.0,-1.0)};
-    let k=RayCaster::new(&grid,ray).unwrap().next().unwrap();
-    
-    assert_eq!(grid.to_grid_mod(ray.point).y,0.0);
-    assert_eq!(k.tval,0.0);
-    assert_eq!(k.cell,vec2(1,1));
-    */
-
-
 
 }
 
@@ -357,12 +329,14 @@ pub mod raycast{
     pub struct CollideCellEvent{
         //Cell colliding with
         pub cell:Vec2<GridNum>,
+
         //Direction in which we are colliding with it.
         pub dir_hit:CardDir,
 
         //So the user can see how long the ray is now.
         pub tval:WorldNum
     }
+
     pub struct RayCaster<'a>{
         grid:&'a GridViewPort,
         ray:Ray<WorldNum>,
@@ -371,16 +345,16 @@ pub mod raycast{
         current_grid:Vec2<GridNum>,
         tval:WorldNum
     }
+
     impl<'a> RayCaster<'a>{
-        pub fn new(grid:&'a GridViewPort,ray:Ray<WorldNum>)->Option<RayCaster>{
+        pub fn new(grid:&'a GridViewPort,ray:Ray<WorldNum>)->RayCaster{
             let dir_sign=vec2(if ray.dir.x>0.0{1}else{0},if ray.dir.y>0.0{1}else{0});
             let next_dir_sign=vec2(if ray.dir.x>0.0{1}else{-1},if ray.dir.y>0.0{1}else{-1});
             
             let mut current_grid=grid.to_grid(ray.point);
 
-
-            //dbg!(ray);
-
+            //Make it so that if the bot is on a line,
+            //it will also still consider the line first
             if grid.to_grid_mod(ray.point).x==0.0{
                 if dir_sign.x==1{
                     current_grid.x-=1;
@@ -393,13 +367,14 @@ pub mod raycast{
                 }
             }
 
-
-
+            assert_gt!(ray.dir.magnitude2(),0.0 );
+            /*
             if ray.dir.magnitude2()>0.0{
                 Some(RayCaster{grid,ray,dir_sign,next_dir_sign,current_grid,tval:0.0})
             }else{
                 None
-            }
+            }*/
+            RayCaster{grid,ray,dir_sign,next_dir_sign,current_grid,tval:0.0}
         }
     }
     impl FusedIterator for RayCaster<'_>{}
@@ -414,17 +389,6 @@ pub mod raycast{
             
             let pp =grid.to_grid_mod(self.ray.point);
             
-            //TODO see test
-            /*
-            if pp.x==0.0{
-                next_grid.x-=dir_sign.x;
-            }
-            if pp.y==0.0{
-                next_grid.y-=dir_sign.y;
-            }
-            */
-
-
             let next_grid_pos=grid.to_world_topleft(next_grid);
 
             //A ray can be described as follows:
@@ -459,24 +423,11 @@ pub mod raycast{
             let tvalx=(next_grid_pos.x-ray.point.x)/ray.dir.x;
             let tvaly=(next_grid_pos.y-ray.point.y)/ray.dir.y;
 
-            //dbg!(next_grid_pos.x,ray.point.x,ray.dir.x);
-            
-            //dbg!(tvalx,tvaly);
-            //TODO test that this all works with negative numbers!!!
-            /*
-            if tvalx.is_finite(){
-                assert_ge!(tvalx,0.0,"{:?}",(ray,self.current_grid,next_grid,next_grid_pos));
-            }
-            if tvaly.is_finite(){
-                assert_ge!(tvaly,0.0,"{:?}",(ray,self.current_grid,next_grid,next_grid_pos));
-            }
-            */
             let mut dir_hit;
             if (tvalx.is_finite() && tvalx<tvaly) || tvaly.is_infinite() || tvaly.is_nan(){
                 if dir_sign.x==1{
                     //hit left side
                     dir_hit=CardDir::L;
-                    //1
                 }else{
                     dir_hit=CardDir::R;
                     //hit right side
@@ -485,14 +436,6 @@ pub mod raycast{
 
                 self.current_grid.x+=self.next_dir_sign.x;
 
-                /*
-                if pp.x==0.0 && dir_sign.x==1{
-                    self.tval-=next_grid_pos.x-ray.point.x;
-                }
-                if pp.x==0.0 && dir_sign.x==0{
-                    return Some(CollideCellEvent{tval:self.tval,cell:self.current_grid+vec2(1,0),dir_hit})
-                }
-                */
                 
             }else if tvaly<=tvalx  || tvalx.is_infinite() || tvalx.is_nan(){
 
@@ -505,19 +448,6 @@ pub mod raycast{
                 }
                 self.tval=tvaly;
                 self.current_grid.y+=self.next_dir_sign.y;
-                /*
-                if pp.y==0.0 && dir_sign.y==1{
-                    self.tval-=next_grid_pos.y-ray.point.y;
-                }
-                */
-                /*
-                if pp.y==0.0 && dir_sign.y==1{
-                    self.tval-=next_grid_pos.y-ray.point.y;
-                }
-                if pp.y==0.0 && dir_sign.y==0{
-                    return Some(CollideCellEvent{tval:self.tval,cell:self.current_grid+vec2(0,1),dir_hit})
-                }
-                */
                 
                 
             }else{
@@ -531,7 +461,7 @@ pub mod raycast{
 
 
 
-
+#[derive(Debug)]
 pub struct GridViewPort{
     pub spacing:Vec2<WorldNum>,
     pub origin:Vec2<WorldNum>

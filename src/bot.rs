@@ -127,6 +127,7 @@ impl BotProp {
 
         let push_mag = ammount_touching * prop.collision_push;
 
+
         let velocity_diff = bota.vel - botb.vel;
 
         let drag = -prop.collision_drag * ammount_touching * velocity_diff.dot(offset);
@@ -140,10 +141,10 @@ impl BotProp {
         let viscous = velocity_diff * (-prop.viscousity_coeff * ammount_touching);
 
         bota.acc += push_force1;
-        bota.acc += viscous;
+        //bota.acc += viscous;
 
         botb.acc += push_force2;
-        botb.acc += viscous;
+        //botb.acc += viscous;
     }
 
     #[inline(always)]
