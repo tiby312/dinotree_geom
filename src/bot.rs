@@ -79,7 +79,7 @@ impl BotProp {
         //A value of 1 is full force.
         #[inline(always)]
         pub fn handle_repel(input: f32) -> f32 {
-            let a = 3.0 * input * input;
+            let a = 1.0 * input * input;
             a.min(1.0)
         }
 
@@ -191,13 +191,16 @@ impl crate::BorderCollideTrait for Bot {
 impl Bot {
 
     #[inline(always)]
-    pub fn move_to_point(&mut self,target:Vec2<f32>,radius:f32) -> bool{
-        let diff=target-self.pos-self.vel*40.0;
-        let lens=diff.magnitude2();
-        if lens>0.001{
-            self.acc+=diff*(0.03/lens.sqrt());
-        }
-        lens<radius
+    pub fn move_to_point(&mut self,target:Vec2<f32>,radius:f32) -> bool
+    {
+
+
+        let force = (target-self.pos)*0.02 - self.vel;
+
+        self.acc+=force.truncate_at(0.03);
+
+
+        (target-self.pos).magnitude()<radius
     }
 
     #[inline(always)]
