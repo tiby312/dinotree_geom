@@ -202,7 +202,10 @@ impl Bot {
 
         let speed=self.vel.magnitude();
         let k=speed.min(radius)*0.9;
-        (target-self.pos).magnitude()+k<=radius
+        
+        let position_check = (target-self.pos).magnitude()+k<=radius;
+        let velocity_check = speed<=0.3;
+        position_check && velocity_check
     }
 
     #[inline(always)]
