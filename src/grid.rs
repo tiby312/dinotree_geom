@@ -58,7 +58,6 @@ impl CardDir2{
     }
 
     pub fn into_offset(self)->(Vec2<GridNum>,usize){
-        use CardDir2::*;
         match self{
             CardDir2::UU=>{
                 (vec2(0,-1),2)
@@ -235,6 +234,11 @@ impl<'a> Iterator for CellIterator<'a>{
 }
 
 
+pub struct Map<'a>{
+    pub dim:Vec2<GridNum>,
+    pub str:&'a str
+}
+
 
 pub type GridNum=i16;
 
@@ -244,10 +248,10 @@ pub struct Grid2D {
 }
 
 impl Grid2D {
-    pub fn from_str(dim:Vec2<GridNum>,p:&str)->Grid2D{
-        let mut grid=Grid2D::new(dim);
+    pub fn from_str(map:Map)->Grid2D{
+        let mut grid=Grid2D::new(map.dim);
 
-        for (y,line) in p.lines().enumerate(){
+        for (y,line) in map.str.lines().enumerate(){
             for (x,c) in line.chars().enumerate(){
                 match c{
                     '█'=>{
@@ -257,7 +261,7 @@ impl Grid2D {
 
                     }
                     _=>{
-                        panic!("unknown char");
+                        panic!("unknown char {:?}",c);
                     }
                 }
             }
