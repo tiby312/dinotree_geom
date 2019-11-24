@@ -194,13 +194,15 @@ impl Bot {
     pub fn move_to_point(&mut self,target:Vec2<f32>,radius:f32) -> bool
     {
 
-
-        let force = (target-self.pos)*0.02 - self.vel;
+        //first constant influences how much it slows down before reaching its destination.
+        //second constant caps how fast it can change direction.
+        let force = ((target-self.pos)*0.05).truncate_at(1.0) - self.vel;
 
         self.acc+=force.truncate_at(0.03);
 
-
-        (target-self.pos).magnitude()<radius
+        let speed=self.vel.magnitude();
+        let k=speed.min(radius)*0.9;
+        (target-self.pos).magnitude()+k<=radius
     }
 
     #[inline(always)]

@@ -2,6 +2,95 @@ use crate::axgeom::*;
 use bit_vec::*;
 
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
+pub enum CardDir2{
+    UU=0,
+    UR=1,
+    RR=2,
+    RD=3,
+    DD=4,
+    DL=5,
+    LL=6,
+    UL=7
+}
+impl CardDir2{
+    pub fn from_u8(a:u8)->CardDir2{
+        use CardDir2::*;
+        match a{
+            0=>UU,
+            1=>UR,
+            2=>RR,
+            3=>RD,
+            4=>DD,
+            5=>DL,
+            6=>LL,
+            7=>UL,
+            _=>panic!("{:?} is not a valid value",a)
+        }
+    }
+    pub fn from_offset(offset:Vec2<GridNum>)->CardDir2{
+        use CardDir2::*;
+        match offset{
+            Vec2{x:0, y:-1}=>UU,
+            Vec2{x:1, y:-1}=>UR,
+            Vec2{x:1, y: 0}=>RR,
+            Vec2{x:1, y: 1}=>RD,
+            Vec2{x:0, y: 1}=>DD,
+            Vec2{x:-1,y: 1}=>DL,
+            Vec2{x:-1,y: 0}=>LL,
+            Vec2{x:-1,y:-1}=>UL,
+            _=>{
+                unreachable!("Invalid offset provided: {:?}",offset);
+            }
+        }
+    }
+
+    pub fn all_offsets()->[(Vec2<GridNum>,usize);8]{
+        [
+            CardDir2::UU.into_offset(),
+            CardDir2::UR.into_offset(),
+            CardDir2::RR.into_offset(),
+            CardDir2::RD.into_offset(),
+            CardDir2::DD.into_offset(),
+            CardDir2::DL.into_offset(),
+            CardDir2::LL.into_offset(),
+            CardDir2::UL.into_offset()
+        ]
+    }
+
+    pub fn into_offset(self)->(Vec2<GridNum>,usize){
+        use CardDir2::*;
+        match self{
+            CardDir2::UU=>{
+                (vec2(0,-1),2)
+            },
+            CardDir2::UR=>{
+                (vec2(1,-1),3)
+            },
+            CardDir2::RR=>{
+                (vec2(1,0),2)
+            },
+            CardDir2::RD=>{
+                (vec2(1,1),3)
+            },
+            CardDir2::DD=>{
+                (vec2(0,1),2)
+            },
+            CardDir2::DL=>{
+                (vec2(-1,1),3)
+            },
+            CardDir2::LL=>{
+                (vec2(-1,0),2)
+            },
+            CardDir2::UL=>{
+                (vec2(-1,-1),3)
+            }
+        }
+    }
+}
+
+
+
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum CardDir{
     U,
     D,
@@ -147,7 +236,7 @@ impl<'a> Iterator for CellIterator<'a>{
 
 
 
-pub type GridNum=isize;
+pub type GridNum=i16;
 
 pub struct Grid2D {
     dim: Vec2<GridNum>,
