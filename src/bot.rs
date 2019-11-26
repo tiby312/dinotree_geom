@@ -79,7 +79,7 @@ impl BotProp {
         //A value of 1 is full force.
         #[inline(always)]
         pub fn handle_repel(input: f32) -> f32 {
-            let a = 1.0 * input * input;
+            let a = 3.0 * input * input;
             a.min(1.0)
         }
 

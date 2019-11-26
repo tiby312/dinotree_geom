@@ -556,33 +556,33 @@ pub mod raycast{
 
 #[derive(Debug)]
 pub struct GridViewPort{
-    pub spacing:Vec2<WorldNum>,
+    pub spacing:WorldNum,
     pub origin:Vec2<WorldNum>
 }
 impl GridViewPort{
 
     pub fn to_world_topleft(&self,pos:Vec2<GridNum>)->Vec2<WorldNum>{
-        pos.inner_as().scale(self.spacing)+self.origin
+        pos.inner_as()*self.spacing+self.origin
     }
 
     pub fn to_world_center(&self,pos:Vec2<GridNum>)->Vec2<WorldNum>{
-        pos.inner_as().scale(self.spacing)+self.origin+self.spacing/2.0
+        pos.inner_as()*self.spacing+self.origin+vec2same(self.spacing)/2.0
     }
     
     pub fn to_grid_mod(&self,pos:Vec2<WorldNum>)->Vec2<WorldNum>{
         let k = self.to_grid(pos);
-        let k = k.inner_as().scale(self.spacing);
+        let k = k.inner_as()*self.spacing;
         pos-k
     }
     pub fn to_grid(&self,pos:Vec2<WorldNum>)->Vec2<GridNum>{
     
-        let result = (pos-self.origin).inv_scale(self.spacing);
+        let result = (pos-self.origin)/self.spacing;
 
         result.inner_as()
     }
 
 
-    pub fn cell_radius(&self)->Vec2<WorldNum>{
+    pub fn cell_radius(&self)->WorldNum{
         self.spacing
     }
 }
