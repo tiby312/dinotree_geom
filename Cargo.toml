@@ -1,6 +1,6 @@
 [package]
 name = "duckduckgeo"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Ken Reed <kenakioreed@gmail.com>"]
 description = "2d geom library"
 license = "MIT/Apache-2.0"
@@ -14,7 +14,7 @@ edition = "2018"
 axgeom = "1.2"
 roots = "0.0.5"
 dists="0.3"
-rand="*"
+rand = "0.7.0"
 bit-vec = "0.6"
 more-asserts="*"
 ordered-float = "1.0.2"
