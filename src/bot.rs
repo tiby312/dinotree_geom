@@ -1,4 +1,4 @@
-use axgeom::ordered_float::*;
+use ordered_float::*;
 use axgeom::*;
 use dists;
 
@@ -141,10 +141,10 @@ impl BotProp {
         let viscous = velocity_diff * (-prop.viscousity_coeff * ammount_touching);
 
         bota.acc += push_force1;
-        //bota.acc += viscous;
+        bota.acc += viscous;
 
         botb.acc += push_force2;
-        //botb.acc += viscous;
+        botb.acc += viscous;
     }
 
     #[inline(always)]
@@ -196,16 +196,18 @@ impl Bot {
 
         //first constant influences how much it slows down before reaching its destination.
         //second constant caps how fast it can change direction.
-        let force = ((target-self.pos)*0.05).truncate_at(1.0) - self.vel;
+        let force = ((target-self.pos)*0.03).truncate_at(1.0) - self.vel;
 
-        self.acc+=force.truncate_at(0.03);
+        self.acc+=force.truncate_at(0.01);
 
         let speed=self.vel.magnitude();
         let k=speed.min(radius)*0.9;
         
+
         let position_check = (target-self.pos).magnitude()+k<=radius;
-        let velocity_check = speed<=0.3;
-        position_check && velocity_check
+        
+        //let velocity_check = speed<=0.3;
+        position_check //&& velocity_check
     }
 
     #[inline(always)]

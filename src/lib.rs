@@ -13,10 +13,10 @@ pub mod bot;
 
 pub mod grid;
 
-use axgeom::num_traits::Float;
-use axgeom::num_traits::NumAssign;
-use axgeom::num_traits::Zero;
-use axgeom::ordered_float::NotNan;
+use num_traits::Float;
+use num_traits::NumAssign;
+use num_traits::Zero;
+use ordered_float::NotNan;
 use axgeom::vec2;
 use axgeom::Rect;
 use axgeom::Vec2;
@@ -180,23 +180,23 @@ pub fn collide_with_border<B: BorderCollideTrait>(
 
     let (pos, vel) = &mut a.pos_vel_mut();
 
-    if pos.x < xx.left {
-        pos.x = xx.left;
+    if pos.x < xx.start {
+        pos.x = xx.start;
         vel.x = -vel.x;
         vel.x *= drag;
     }
-    if pos.x > xx.right {
-        pos.x = xx.right;
+    if pos.x > xx.end {
+        pos.x = xx.end;
         vel.x = -vel.x;
         vel.x *= drag;
     }
-    if pos.y < yy.left {
-        pos.y = yy.left;
+    if pos.y < yy.start {
+        pos.y = yy.start;
         vel.y = -vel.y;
         vel.y *= drag;
     }
-    if pos.y > yy.right {
-        pos.y = yy.right;
+    if pos.y > yy.end {
+        pos.y = yy.end;
         vel.y = -vel.y;
         vel.y *= drag;
     }
@@ -205,8 +205,8 @@ pub fn collide_with_border<B: BorderCollideTrait>(
 ///Forces a position to be within the specified rect.
 #[inline(always)]
 pub fn stop_wall<N: MyNum>(pos: &mut Vec2<N>, rect: Rect<N>) {
-    let start = vec2(rect.x.left, rect.y.left);
-    let dim = vec2(rect.x.right, rect.y.right);
+    let start = vec2(rect.x.start, rect.y.start);
+    let dim = vec2(rect.x.end, rect.y.end);
     if pos.x > dim.x {
         pos.x = dim.x;
     } else if pos.x < start.x {
@@ -259,7 +259,7 @@ pub fn collide_with_rect<N: Float>(
     let center_bot = botr.derive_center();
     let center_wall = wallr.derive_center();
 
-    let ratio = (wallx.right - wallx.left) / (wally.right - wally.left);
+    let ratio = (wallx.end - wallx.start) / (wally.end - wally.start);
 
     //Assuming perfect square
     let p1 = vec2(N::one(), ratio);
@@ -279,19 +279,19 @@ pub fn collide_with_rect<N: Float>(
             WallSide::Above
         }
         [Less, Equal] => {
-            //topleft
+            //topstart
             WallSide::Above
         }
         [Less, Greater] => {
-            //left
+            //start
             WallSide::LeftOf
         }
         [Greater, Less] => {
-            //right
+            //end
             WallSide::RightOf
         }
         [Greater, Equal] => {
-            //bottom right
+            //bottom end
             WallSide::Below
         }
         [Greater, Greater] => {
@@ -299,7 +299,7 @@ pub fn collide_with_rect<N: Float>(
             WallSide::Below
         }
         [Equal, Less] => {
-            //top right
+            //top end
             WallSide::Above
         }
         [Equal, Equal] => {
@@ -307,7 +307,7 @@ pub fn collide_with_rect<N: Float>(
             WallSide::Above
         }
         [Equal, Greater] => {
-            //bottom left
+            //bottom start
             WallSide::Below
         }
     };
@@ -386,19 +386,19 @@ pub fn ray_compute_intersection_tvalue<A: axgeom::AxisTrait, N: MyNum>(
 
 fn ray_1d<N: Float>(point: N, dir: N, range: &axgeom::Range<N>) -> IntersectsBotResult<N> {
     use core::cmp::Ordering::*;
-    match range.left_or_right_or_contain(&point) {
+    match range.contains_ext(point) {
         Less => {
             if dir < N::zero() {
                 IntersectsBotResult::NoHit
             } else {
-                IntersectsBotResult::Hit(range.left - point)
+                IntersectsBotResult::Hit(range.start - point)
             }
         }
         Greater => {
             if dir > N::zero() {
                 IntersectsBotResult::NoHit
             } else {
-                IntersectsBotResult::Hit(point - range.right)
+                IntersectsBotResult::Hit(point - range.end)
             }
         }
         Equal => IntersectsBotResult::Inside,
