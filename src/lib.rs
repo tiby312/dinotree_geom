@@ -175,8 +175,8 @@ pub fn collide_with_border<B: BorderCollideTrait>(
     rect2: &axgeom::Rect<B::N>,
     drag: B::N,
 ) {
-    let xx = rect2.get_range(axgeom::XAXISS);
-    let yy = rect2.get_range(axgeom::YAXISS);
+    let xx = rect2.get_range(axgeom::XAXIS);
+    let yy = rect2.get_range(axgeom::YAXIS);
 
     let (pos, vel) = &mut a.pos_vel_mut();
 
@@ -253,8 +253,8 @@ pub fn collide_with_rect<N: Float>(
     botr: &axgeom::Rect<N>,
     wallr: &axgeom::Rect<N>,
 ) -> Option<WallSide> {
-    let wallx = wallr.get_range(axgeom::XAXISS);
-    let wally = wallr.get_range(axgeom::YAXISS);
+    let wallx = wallr.get_range(axgeom::XAXIS);
+    let wally = wallr.get_range(axgeom::YAXIS);
 
     let center_bot = botr.derive_center();
     let center_wall = wallr.derive_center();
@@ -476,14 +476,12 @@ pub fn ray_intersects_box<N: Float + core::fmt::Debug>(
 
     let ((x1, x2), (y1, y2)) = rect.get();
 
-    //val=t*m+y
     let (tmin, tlen) = if dir.x != N::zero() {
         let tx1 = (x1 - point.x) / dir.x;
         let tx2 = (x2 - point.x) / dir.x;
 
         (tx1.min(tx2), tx1.max(tx2))
     } else if point.x < x1 || point.x > x2 {
-        //dbg!(point,rect,dir);
         return IntersectsBotResult::NoHit; // parallel AND outside box : no intersection possible
     } else {
         return ray_1d(point.y, dir.y, &rect.y);
