@@ -346,7 +346,7 @@ impl<N> Ray<N> {
 
 
 ///Given a ray and an axis aligned line, return the tvalue,and x coordinate
-pub fn ray_compute_intersection_tvalue<A: axgeom::AxisTrait, N: MyNum>(
+pub fn ray_compute_intersection_tvalue<A: axgeom::Axis, N: MyNum>(
     ray: &Ray<N>,
     axis: A,
     line: N,
