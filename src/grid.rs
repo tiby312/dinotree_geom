@@ -416,7 +416,7 @@ fn test_raycast(){
 pub mod raycast{
     use core::iter::*;
     use crate::grid::*;
-    use crate::Ray;
+    //use crate::Ray;
 
     #[derive(Copy,Clone,Debug)]
     pub struct CollideCellEvent{
@@ -550,6 +550,8 @@ pub mod raycast{
         }
     }
 }
+
+
 
 
 

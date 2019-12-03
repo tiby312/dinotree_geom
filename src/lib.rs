@@ -313,12 +313,22 @@ pub fn collide_with_rect<N: Float>(
     };
     Some(ans)
 }
+/*
 
 ///A Ray.
 #[derive(Debug, Copy, Clone)]
 pub struct Ray<N> {
     pub point: Vec2<N>,
     pub dir: Vec2<N>,
+}
+
+
+impl<N:Copy+core::ops::Add<Output=N>+core::ops::Mul<Output=N>> Ray<N>{
+
+    #[inline(always)]
+    pub fn point_at_tval(&self,tval:N)->Vec2<N>{
+        self.point+self.dir*tval
+    }
 }
 
 impl<N> Ray<N> {
@@ -466,6 +476,8 @@ pub fn ray_intersects_circle<N: Float + roots::FloatType>(
 
 
 
+
+
 ///Returns if a ray intersects a box.
 pub fn ray_intersects_box<N: Float + core::fmt::Debug>(
     ray: &Ray<N>,
@@ -523,3 +535,5 @@ pub enum IntersectsBotResult<N> {
     Inside,
     NoHit,
 }
+
+*/
