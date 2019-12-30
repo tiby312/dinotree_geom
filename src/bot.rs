@@ -196,7 +196,7 @@ impl Bot {
 
         //first constant influences how much it slows down before reaching its destination.
         //second constant caps how fast it can change direction.
-        let mut force =  ((target-self.pos)*0.02).truncate_at(1.0) - self.vel;
+        let force =  ((target-self.pos)*0.02).truncate_at(1.0) - self.vel;
 
         self.acc+=force.truncate_at(0.01);
 
@@ -388,10 +388,8 @@ impl BotSceneBuilder {
         self
     }
 
-    pub fn build_specialized<T>(&mut self, mut func: impl FnMut(Vec2<f32>) -> T) -> BotScene<T> {
+    pub fn build_specialized<T>(&mut self, mut func: impl FnMut(&BotProp,Vec2<f32>) -> T) -> BotScene<T> {
         let spiral = dists::spiral::Spiral::new([0.0, 0.0], self.radius, self.grow);
-
-        let bots: Vec<T> = spiral.take(self.num).map(|pos| func(pos)).collect();
 
         let bot_prop = BotProp {
             radius: Dist::new(self.bot_radius),
@@ -400,6 +398,9 @@ impl BotSceneBuilder {
             minimum_dis_sqr: 0.0001,
             viscousity_coeff: 0.1,
         };
+
+        let bots: Vec<T> = spiral.take(self.num).map(|pos| func(&bot_prop,pos)).collect();
+
 
         BotScene { bot_prop, bots }
     }
