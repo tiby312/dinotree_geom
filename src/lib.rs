@@ -13,10 +13,10 @@ pub mod bot;
 
 pub mod grid;
 
-use num_traits::Float;
-use num_traits::NumAssign;
-use num_traits::Zero;
-use ordered_float::NotNan;
+use axgeom::num_traits::Float;
+use axgeom::num_traits::NumAssign;
+use axgeom::num_traits::Zero;
+use axgeom::ordered_float::NotNan;
 use axgeom::vec2;
 use axgeom::Rect;
 use axgeom::Vec2;
