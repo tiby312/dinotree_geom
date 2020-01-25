@@ -1,6 +1,7 @@
 use crate::axgeom::*;
 use bit_vec::*;
 
+///Represents one of 8 cardinal directions (with diagonals). 
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum CardDir2{
     UU=0,
@@ -89,6 +90,7 @@ impl CardDir2{
 
 
 
+///Represents one of 4 carinal directions (without diagonals)
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum CardDir{
     U,
@@ -153,6 +155,7 @@ impl CardDir{
 }
 
 
+///Iterate over every cell position in a grid.
 #[derive(Copy,Clone)]
 pub struct Iterator2D{
     counter:Vec2<GridNum>,
@@ -210,6 +213,8 @@ fn test_iterator2d(){
 
 impl<'a> FusedIterator for CellIterator<'a>{}
 impl<'a> ExactSizeIterator for CellIterator<'a>{}
+
+///Iterate over every element in a grid
 pub struct CellIterator<'a>{
     grid:&'a Grid2D,
     inner:Iterator2D
@@ -234,14 +239,19 @@ impl<'a> Iterator for CellIterator<'a>{
 }
 
 
+///Represents a ascii map where █ are treated as walls and spaces are treated as empty cells.
+///This is still in its string representation.
 pub struct Map<'a>{
     pub dim:Vec2<GridNum>,
     pub str:&'a str
 }
 
 
+///The type used for the dimension and indexing of the grid
 pub type GridNum=i16;
 
+
+///A parsed map that is no longer represented as a string.
 pub struct Grid2D {
     dim: Vec2<GridNum>,
     inner: BitVec,
@@ -296,6 +306,26 @@ impl Grid2D {
         (self.dim.x*self.dim.y) as usize
     }
 
+    ///Pick a random empty spot by shuffling all empty spots
+    ///and picking the first one.
+    pub fn pick_empty_spot(&self)->Option<Vec2<GridNum>>{
+        use rand::prelude::*;
+        let mut k:Vec<_>=Iterator2D::new(self.dim()).filter(|a|!self.get(*a)).collect();
+        let mut rng = rand::thread_rng();
+        k.shuffle(&mut rng);
+        k.first().map(|a|*a)
+    }
+
+    ///Find the closest empty cell by inefficiently calculating the distance to every cell
+    ///and then picking the cell with the smallest distance
+    pub fn find_closest_empty(&self,start:Vec2<GridNum>)->Option<Vec2<GridNum>>{
+        let mut k:Vec<_>=Iterator2D::new(self.dim()).filter(|a|!self.get(*a)).map(|a|(a,(start-a).magnitude2() )).collect();
+
+        k.sort_by(|a,b|a.1.cmp(&b.1));
+
+        k.first().map(|a|a.0)
+    }
+
     pub fn draw_map(&self,f:&mut fmt::Formatter<'_>)->fmt::Result{
         let mut res=String::new();
         
@@ -325,25 +355,9 @@ impl Grid2D {
 }
 
 
+///The type used to represent a world position.
 pub type WorldNum=f32;
 
-
-/*
-#[test]
-fn testy(){
-    let mut inner=Grid2D::new(vec2(20,20));
-    let k =GridDim2D{dim:Rect::new(-100.0,100.0,-100.0,100.0),inner};
-
-    let j = k.convert_to_grid(vec2(56.0,56.0));
-    
-    dbg!(j);
-    
-    let back=k.convert_to_world(j);
-    assert_eq!(back,vec2(50.0,50.0));
-    //dbg!(back);
-    //panic!("yo");
-}
-*/
 
 use core::fmt;
 impl fmt::Debug for Grid2D {
@@ -353,28 +367,8 @@ impl fmt::Debug for Grid2D {
 }
 
 
-pub fn pick_empty_spot(grid:&Grid2D)->Option<Vec2<GridNum>>{
-    //TODO inefficient
-    use rand::prelude::*;
 
-    let mut k:Vec<_>=Iterator2D::new(grid.dim()).filter(|a|!grid.get(*a)).collect();
-
-    let mut rng = rand::thread_rng();
-    k.shuffle(&mut rng);
-
-    k.first().map(|a|*a)
-}
-
-pub fn find_closest_empty(grid:&Grid2D,start:Vec2<GridNum>)->Option<Vec2<GridNum>>{
-    //TODO inefficient.
-
-    let mut k:Vec<_>=Iterator2D::new(grid.dim()).filter(|a|!grid.get(*a)).map(|a|(a,(start-a).magnitude2() )).collect();
-
-    k.sort_by(|a,b|a.1.cmp(&b.1));
-
-    k.first().map(|a|a.0)
-}
-
+///Returns the result of the grid raycast
 #[derive(Copy,Clone,Debug)]
 pub enum GridRayCastResult{
     Found{t:WorldNum,cell:Vec2<GridNum>,dirhit:CardDir},
@@ -412,10 +406,11 @@ fn test_raycast(){
 }
 
 
+
+///A way to cast a ray until it hits a cell
 pub mod raycast{
     use core::iter::*;
     use crate::grid::*;
-    //use crate::Ray;
 
     #[derive(Copy,Clone,Debug)]
     pub struct CollideCellEvent{
@@ -460,12 +455,7 @@ pub mod raycast{
             }
 
             assert_gt!(ray.dir.magnitude2(),0.0 );
-            /*
-            if ray.dir.magnitude2()>0.0{
-                Some(RayCaster{grid,ray,dir_sign,next_dir_sign,current_grid,tval:0.0})
-            }else{
-                None
-            }*/
+            
             RayCaster{grid,ray,dir_sign,next_dir_sign,current_grid,tval:0.0}
         }
     }
@@ -554,6 +544,7 @@ pub mod raycast{
 
 
 
+///A way to map a grid to world coordinates and vice versa
 #[derive(Debug)]
 pub struct GridViewPort{
     pub spacing:WorldNum,

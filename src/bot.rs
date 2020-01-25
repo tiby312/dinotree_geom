@@ -180,14 +180,6 @@ pub struct Bot {
     pub vel: Vec2<f32>,
     pub acc: Vec2<f32>,
 }
-
-impl crate::BorderCollideTrait for Bot {
-    type N = f32;
-    #[inline(always)]
-    fn pos_vel_mut(&mut self) -> (&mut Vec2<f32>, &mut Vec2<f32>) {
-        (&mut self.pos, &mut self.vel)
-    }
-}
 impl Bot {
 
     #[inline(always)]
