@@ -303,7 +303,7 @@ impl Grid2D {
 
 
 
-        fa.and(writeln!(f,""));
+        fa=fa.and(writeln!(f,""));
         for i in 0..self.dim().y{
             for j in 0..self.dim().x{
                 
@@ -386,8 +386,7 @@ pub enum GridRayCastResult{
 fn test_raycast(){
     use crate::*;
     use self::raycast::*;
-    use core::iter::Iterator;
-
+    
     let grid_dim=vec2(16,9)*2;
         
     let mut grid=GridViewPort{origin:vec2(0.0,0.0),spacing:vec2(1920./grid_dim.x as f32,1080./grid_dim.y as f32)};
@@ -478,9 +477,8 @@ pub mod raycast{
             let ray=&self.ray;
             let dir_sign=self.dir_sign;
 
-            let mut next_grid=self.current_grid+dir_sign;
+            let next_grid=self.current_grid+dir_sign;
             
-            let pp =grid.to_grid_mod(self.ray.point);
             
             let next_grid_pos=grid.to_world_topleft(next_grid);
 
@@ -516,7 +514,7 @@ pub mod raycast{
             let tvalx=(next_grid_pos.x-ray.point.x)/ray.dir.x;
             let tvaly=(next_grid_pos.y-ray.point.y)/ray.dir.y;
 
-            let mut dir_hit;
+            let dir_hit;
             if (tvalx.is_finite() && tvalx<tvaly) || tvaly.is_infinite() || tvaly.is_nan(){
                 if dir_sign.x==1{
                     //hit left side
