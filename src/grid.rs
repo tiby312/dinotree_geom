@@ -660,6 +660,7 @@ pub mod collide{
         let k=if let Some(max)=max{
             let o=offsets.iter()
                 .filter(|a|a.is_some()).map(|a|a.unwrap())
+                .filter(|a|a.dir!=max.dir)
                 .filter(|a|a.dis>0.0)
                 .filter(|a|{
                 let next=a.grid+a.dir.into_vec();
