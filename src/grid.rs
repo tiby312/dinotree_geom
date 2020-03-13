@@ -632,17 +632,16 @@ pub mod collide{
             find_corner_offset(grid,dim,a)
         }).collect();
 
-        //dbg!(&offsets);
-
         for a in offsets.iter_mut(){
             if let Some(a)=a{
                 a.dis+=radius;
             }
         }
 
-        let max=offsets.iter()
-            .filter(|a|a.is_some()).map(|a|a.unwrap())
-            .filter(|a|a.dis>0.0)
+        let collisions=offsets.iter().filter(|a|a.is_some()).map(|a|a.unwrap()).filter(|a|a.dis>0.0);
+
+
+        let max=collisions.clone()
             .filter(|a|{
             let next=a.grid+a.dir.into_vec();
             if let Some(d)=grid.get_option(next){
@@ -656,12 +655,10 @@ pub mod collide{
             } 
         }).min_by(|a,b|a.dis.partial_cmp(&b.dis).unwrap());
     
-
-        let k=if let Some(max)=max{
-            let o=offsets.iter()
-                .filter(|a|a.is_some()).map(|a|a.unwrap())
+        if let Some(max)=max{
+            let o=
+                collisions.clone()
                 .filter(|a|a.dir!=max.dir)
-                .filter(|a|a.dis>0.0)
                 .filter(|a|{
                 let next=a.grid+a.dir.into_vec();
                 if let Some(d)=grid.get_option(next){
@@ -675,21 +672,14 @@ pub mod collide{
                 } 
             }).min_by(|a,b|a.dis.partial_cmp(&b.dis).unwrap());
     
-            
             if let Some(o)=o{
                 [Some((max.dis,max.normal)),Some((o.dis,o.normal))]
             }else{
                 [Some((max.dis,max.normal)),None]
             }
-            //[Some((max.dis,max.normal)),None]
-
         }else{
             [None,None]
-        };
-
-        //dbg!(&k);
-
-        k
+        }
     }
 
     /*
