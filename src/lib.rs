@@ -113,6 +113,33 @@ pub fn repel_one<N:Float+MyNum>(
     Ok(())
 }
 
+
+pub fn linear_push<N: Float+MyNum>(
+    bots:[(Vec2<N>,&mut Vec2<N>);2],
+    closest: N,
+    mag: N,
+) -> Result<(), ErrTooClose> {
+    let [(bot1_pos,bot1_force_buffer),(bot2_pos,bot2_force_buffer)]=bots;
+
+    let diff = bot2_pos - bot1_pos;
+
+    let len_sqr = diff.magnitude2();
+
+    if len_sqr < closest {
+        return Err(ErrTooClose);
+    }
+
+    let len = len_sqr.sqrt();
+    let mag = mag / len;
+
+    let force = diff.normalize_to(mag);
+
+    *bot1_force_buffer-=force;
+    *bot2_force_buffer+=force;
+
+    Ok(())
+}
+
 ///Repel two objects.
 ///First vector is position. Second vector is force buffer
 pub fn repel<N: Float+MyNum>(

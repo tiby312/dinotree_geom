@@ -375,7 +375,7 @@ pub enum GridRayCastResult{
     NotFound
 }
 
-
+/*
 #[test]
 fn test_raycast(){
     use crate::*;
@@ -404,6 +404,7 @@ fn test_raycast(){
     assert_eq!(k.cell,vec2(1,1));
 
 }
+*/
 
 
 
@@ -580,3 +581,148 @@ impl GridViewPort{
 
 
 
+
+pub mod collide{
+    use super::*;
+
+
+    #[derive(PartialEq,Copy,Clone,Debug)]
+    pub struct Foo{
+        pub grid:Vec2<GridNum>,
+        pub dir:CardDir,
+        pub normal:Vec2<f32>,
+        pub dis:f32
+    }
+
+    fn foo(grid:Vec2<GridNum>,dir:CardDir,normal:Vec2<f32>,dis:f32)->Foo{
+        Foo{grid,dir,normal,dis}
+    }
+
+    //Returns the normal vector, plus the amount of seperation.
+    fn find_corner_offset(grid:&Grid2D,dim:&GridViewPort,point:Vec2<f32>)->Option<Foo>{
+        let grid_coord:Vec2<f32>=point.inner_into();
+        let gg=dim.to_grid(grid_coord);
+        if let Some(d)=grid.get_option(gg){
+            if d{
+                impl Eq for Foo{}
+                
+                let corner=grid_coord;
+
+                let grid_coord=dim.to_grid(corner);
+                let topleft=dim.to_world_topleft(grid_coord);
+                let bottomright=dim.to_world_topleft(grid_coord+vec2(1,1));
+                use CardDir::*;
+                let arr=[foo(gg,U,vec2(0.0,-1.0),point.y-topleft.y),foo(gg,L,vec2(-1.0,0.0),point.x-topleft.x),foo(gg,D,vec2(0.0,1.0),bottomright.y-point.y),foo(gg,R,vec2(1.0,0.0),bottomright.x-point.x)];
+
+                arr.iter().filter(|a|a.dis>0.0).min_by(|a,b|a.dis.partial_cmp(&b.dis).unwrap()).map(|a|*a)
+                
+                
+            }else{
+                None
+            }
+        }else{
+            None
+        }
+    }
+    
+    pub fn is_colliding(grid:&Grid2D,dim:&GridViewPort,bot:&Rect<f32>,radius:f32)->[Option<(f32,Vec2<f32>)>;2]{
+
+        let corners=bot.get_corners();
+        let mut offsets:Vec<_>=corners.iter().map(|&a|{
+            find_corner_offset(grid,dim,a)
+        }).collect();
+
+        //dbg!(&offsets);
+
+        for a in offsets.iter_mut(){
+            if let Some(a)=a{
+                a.dis+=radius;
+            }
+        }
+
+        let max=offsets.iter()
+            .filter(|a|a.is_some()).map(|a|a.unwrap())
+            .filter(|a|a.dis>0.0)
+            .filter(|a|{
+            let next=a.grid+a.dir.into_vec();
+            if let Some(d)=grid.get_option(next){
+                if d{
+                    false
+                }else{
+                    true
+                }
+            }else{
+                true
+            } 
+        }).min_by(|a,b|a.dis.partial_cmp(&b.dis).unwrap());
+    
+
+        let k=if let Some(max)=max{
+            let o=offsets.iter()
+                .filter(|a|a.is_some()).map(|a|a.unwrap())
+                .filter(|a|a.dis>0.0)
+                .filter(|a|{
+                let next=a.grid+a.dir.into_vec();
+                if let Some(d)=grid.get_option(next){
+                    if d{
+                        false
+                    }else{
+                        true
+                    }
+                }else{
+                    true
+                } 
+            }).min_by(|a,b|a.dis.partial_cmp(&b.dis).unwrap());
+    
+            
+            if let Some(o)=o{
+                [Some((max.dis,max.normal)),Some((o.dis,o.normal))]
+            }else{
+                [Some((max.dis,max.normal)),None]
+            }
+            //[Some((max.dis,max.normal)),None]
+
+        }else{
+            [None,None]
+        };
+
+        //dbg!(&k);
+
+        k
+    }
+
+    /*
+    pub fn is_colliding(grid:&Grid2D,dim:&GridViewPort,bot:&Rect<f32>,radius:f32)->[Option<(f32,Vec2<f32>)>;2]{
+        
+        let corners=bot.get_corners();
+
+        let mut offsets:Vec<_>=corners.iter().map(|a|{
+            find_corner_offset(grid,dim,radius,a)
+        }).collect();
+
+        let mut offsets:Vec<_>=offsets.drain(..).filter(|a|a.is_some()).map(|a|a.unwrap()).collect();
+        offsets.sort_by(|(a,_),(b,_)|a.partial_cmp(b).unwrap());
+
+
+        let min=offsets.iter().min_by(|&(a,_),&(b,_)|a.partial_cmp(b).unwrap());
+
+
+        match min{
+            Some(&min)=>{
+                let second_min=offsets.iter().filter(|(_,a)|a!=&min.1).min_by(|&(a,_),&(b,_)|a.partial_cmp(b).unwrap());
+                match second_min{
+                    Some(&second_min)=>{
+                        [Some(min),Some(second_min)]
+                    },
+                    None=>{
+                        [Some(min),None]
+                    }
+                }
+            },
+            None=>{
+                [None,None]
+            }
+        }
+    }
+    */
+}
