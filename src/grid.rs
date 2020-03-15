@@ -91,7 +91,7 @@ impl CardDir2{
 
 
 ///Represents one of 4 carinal directions (without diagonals)
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+#[derive(Copy,Clone,Debug,Eq,PartialEq,PartialOrd,Ord)]
 pub enum CardDir{
     U,
     D,
@@ -625,23 +625,18 @@ pub mod collide{
         }
     }
     
-    pub fn is_colliding(grid:&Grid2D,dim:&GridViewPort,bot:&Rect<f32>,radius:f32)->[Option<(f32,Vec2<f32>)>;2]{
-
+    pub fn is_colliding(grid:&Grid2D,dim:&GridViewPort,bot:&Rect<f32>,radius:f32)->[Option<(f32,CardDir,Vec2<f32>)>;2]{
         let corners=bot.get_corners();
         let mut offsets:Vec<_>=corners.iter().map(|&a|{
             find_corner_offset(grid,dim,a)
-        }).collect();
+        }).filter(|a|a.is_some()).map(|a|a.unwrap()).filter(|a|a.dis>0.0).collect();
 
-        for a in offsets.iter_mut(){
-            if let Some(a)=a{
-                a.dis+=radius;
-            }
+
+        for a in offsets.iter_mut(){    
+            a.dis+=radius;
         }
 
-        let collisions=offsets.iter().filter(|a|a.is_some()).map(|a|a.unwrap()).filter(|a|a.dis>0.0);
-
-
-        let max=collisions.clone()
+        let max=offsets.iter()
             .filter(|a|{
             let next=a.grid+a.dir.into_vec();
             if let Some(d)=grid.get_option(next){
@@ -655,9 +650,9 @@ pub mod collide{
             } 
         }).min_by(|a,b|a.dis.partial_cmp(&b.dis).unwrap());
     
-        if let Some(max)=max{
+        let k=if let Some(max)=max{
             let o=
-                collisions.clone()
+                offsets.iter()
                 .filter(|a|a.dir!=max.dir)
                 .filter(|a|{
                 let next=a.grid+a.dir.into_vec();
@@ -672,14 +667,26 @@ pub mod collide{
                 } 
             }).min_by(|a,b|a.dis.partial_cmp(&b.dis).unwrap());
     
+
+            assert!(max.dis>0.0);
             if let Some(o)=o{
-                [Some((max.dis,max.normal)),Some((o.dis,o.normal))]
+                assert!(o.dis>0.0);
+                assert!(max.dir!=o.dir);
+                [Some((max.dis,max.dir,max.normal)),Some((o.dis,o.dir,o.normal))]
             }else{
-                [Some((max.dis,max.normal)),None]
+                [Some((max.dis,max.dir,max.normal)),None]
             }
         }else{
-            [None,None]
-        }
+            
+            let max=offsets.iter().min_by(|a,b|a.dis.partial_cmp(&b.dis).unwrap());
+            if let Some(max)=max{
+                [Some((max.dis,max.dir,max.normal)),None]
+            }else{
+                [None,None]
+            }
+        };
+
+        k
     }
 
     /*
