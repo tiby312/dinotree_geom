@@ -33,6 +33,10 @@ pub type F64n = NotNan<f64>;
 ///NotNan f64
 pub type F32n = NotNan<f32>;
 
+pub fn f32n(a: f32) -> F32n {
+    NotNan::new(a).unwrap()
+}
+
 ///convert an array of elements of type B to type A.
 pub fn array2_inner_into<B: Copy, A: From<B>>(a: [B; 2]) -> [A; 2] {
     let x = A::from(a[0]);
