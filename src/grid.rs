@@ -251,6 +251,52 @@ pub struct Map<'a>{
 pub type GridNum=i16;
 
 
+
+
+pub struct GridByte2D<T>{
+    dim:Vec2<GridNum>,
+    inner:Vec<T>
+}
+impl<T:Copy> GridByte2D<T>{
+    pub fn new(dim:Vec2<GridNum>,val:T)->GridByte2D<T>{
+        let mut inner=Vec::new();
+        inner.resize( (dim.x*dim.y) as usize,val);
+        GridByte2D{dim,inner}
+    }
+}
+
+impl<T> GridByte2D<T>{
+    
+    pub fn dim(&self)->Vec2<GridNum>{
+        self.dim
+    }
+
+    pub fn contains(&self,point:Vec2<GridNum>)->bool{
+        point.x>=0 && point.y>=0  &&
+        point.x<self.dim.x && point.y<self.dim.y
+    }
+
+    pub fn inner(&self)->&[T]{
+        &self.inner
+    }
+    pub fn inner_mut(&mut self)->&mut [T]{
+        &mut self.inner
+    }
+
+    pub fn get(&self, p:Vec2<GridNum>) -> &T {
+        &self.inner[(p.x * self.dim.y + p.y) as usize]
+    }
+    pub fn get_mut(&mut self, p:Vec2<GridNum>) -> &mut T {
+        &mut self.inner[(p.x * self.dim.y + p.y) as usize]
+    }
+
+
+    pub fn len(&self)->usize{
+        (self.dim.x*self.dim.y) as usize
+    }
+
+}
+
 ///A parsed map that is no longer represented as a string.
 pub struct Grid2D {
     dim: Vec2<GridNum>,
