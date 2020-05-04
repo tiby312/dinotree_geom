@@ -40,8 +40,8 @@ impl BotProp {
         let dis_sqr = diff.magnitude2();
 
         if dis_sqr < 0.0001 {
-            a.acc += vec2(0.1, 0.0);
-            b.acc -= vec2(0.1, 0.0);
+            a.vel += vec2(0.1, 0.0);
+            b.vel -= vec2(0.1, 0.0);
             return;
         }
 
@@ -63,8 +63,8 @@ impl BotProp {
 
         let spring_force = diff * (1. / dis) * (spring_force_mag + spring_dampen);
 
-        a.acc += spring_force;
-        b.acc -= spring_force;
+        a.vel += spring_force;
+        b.vel -= spring_force;
     }
 
     //#[inline(always)]
@@ -95,8 +95,8 @@ impl BotProp {
         }
 
         if dis_sqr < 0.00001 {
-            bota.acc += vec2(0.1, 0.1);
-            botb.acc -= vec2(0.1, 0.1);
+            bota.vel += vec2(0.1, 0.1);
+            botb.vel -= vec2(0.1, 0.1);
             return;
         }
 
@@ -140,11 +140,11 @@ impl BotProp {
 
         let viscous = velocity_diff * (-prop.viscousity_coeff * ammount_touching);
 
-        bota.acc += push_force1;
-        bota.acc += viscous;
+        bota.vel += push_force1;
+        bota.vel += viscous;
 
-        botb.acc += push_force2;
-        botb.acc += viscous;
+        botb.vel += push_force2;
+        botb.vel += viscous;
     }
 
     #[inline(always)]
@@ -168,7 +168,7 @@ impl BotProp {
             let push_mag = vv2 * mouse.mouse_prop.force;
             let push_force = offset * (push_mag / dis);
 
-            bot.acc += -push_force;
+            bot.vel += -push_force;
         }
     }
 }
@@ -178,10 +178,37 @@ impl BotProp {
 pub struct Bot {
     pub pos: Vec2<f32>,
     pub vel: Vec2<f32>,
-    pub acc: Vec2<f32>,
 }
 impl Bot {
+    pub fn steer_to_point(&self,target:&Vec2<f32>,mag:f32,max_speed:f32)->Vec2<f32>{
+        /*
+            target_offset = target - position
+            distance = length (target_offset)
+            ramped_speed = max_speed * (distance / slowing_distance)
+            clipped_speed = minimum (ramped_speed, max_speed)
+            desired_velocity = (clipped_speed / distance) * target_offset
+            steering = desired_velocity - velocity
+        */
 
+        //let mag=0.2;
+        //let max_speed=6.0;
+
+        //v^2=v0^2+2adx
+        //0=max_speed^2+2*mag*d
+        //max_speed^2=-2*mag*d
+        //d=max_speed^2/-2*mag
+        let slowing_distance=(max_speed*max_speed)/(2.0*mag);
+        
+        let target_offset = *target-self.pos;
+        let dis=target_offset.magnitude();
+        //if dis>=0.001{
+        let ramped_speed=max_speed*(dis/slowing_distance);
+        let clipped_speed=ramped_speed.min(max_speed);
+        let desired_velocity=target_offset*(clipped_speed/dis);
+        (desired_velocity-self.vel).truncate_at(mag)
+        //}
+    }
+    /*
     #[inline(always)]
     pub fn move_to_point(&mut self,target:Vec2<f32>,radius:f32) -> bool
     {
@@ -201,14 +228,8 @@ impl Bot {
         //let velocity_check = speed<=0.3;
         position_check //&& velocity_check
     }
+    */
 
-    #[inline(always)]
-    pub fn update(&mut self){
-        let bot=self;
-        bot.pos+=bot.vel;
-        bot.vel+=bot.acc;    
-        bot.acc=vec2(0.0,0.0);
-    }
     #[inline(always)]
     pub fn create_bbox(&self, bot_scene: &BotProp) -> Rect<f32> {
         let p = self.pos;
@@ -224,8 +245,7 @@ impl Bot {
     #[inline(always)]
     pub fn new(pos: Vec2<f32>) -> Bot {
         let vel = vec2(0.0, 0.0);
-        let acc = vec2(0.0, 0.0);
-        Bot { pos, vel, acc }
+        Bot { pos, vel }
     }
 
     #[inline(always)]
@@ -245,8 +265,8 @@ impl Bot {
         //let mag=max_amount;
         diff *= mag / dis;
 
-        self.acc -= diff;
-        b.acc += diff;
+        self.vel -= diff;
+        b.vel += diff;
 
         //TODO if we have moved too far away, move back to point of collision!!!
         {}
