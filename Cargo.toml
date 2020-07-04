@@ -16,3 +16,5 @@ dists="0.3"
 rand = "0.7.0"
 bit-vec = "0.6"
 more-asserts="0.2"
+serde = { version = "1.0", features = ["derive"] }
+
