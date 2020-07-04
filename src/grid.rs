@@ -89,9 +89,11 @@ impl CardDir2{
 }
 
 
+use serde::{Serialize, Deserialize};
 
 ///Represents one of 4 carinal directions (without diagonals)
-#[derive(Copy,Clone,Debug,Eq,PartialEq,PartialOrd,Ord)]
+#[derive(Hash,Serialize, Deserialize,Copy,Clone,Debug,Eq,PartialEq,PartialOrd,Ord)]
+        
 pub enum CardDir{
     U,
     D,
@@ -257,6 +259,27 @@ pub struct Grid2D {
     inner: BitVec,
 }
 
+
+pub struct SpotPicker{
+    counter:usize
+}
+impl SpotPicker{
+    pub fn new()->SpotPicker{
+        SpotPicker{counter:0}
+    }
+    ///Pick a random empty spot by shuffling all empty spots
+    ///and picking the first one.
+    pub fn pick_empty_spot(&mut self,grid:&Grid2D)->Option<Vec2<GridNum>>{
+        let mut k:Vec<_>=Iterator2D::new(grid.dim()).filter(|a|!grid.get(*a)).collect();
+        
+
+        let a=k.get(self.counter % k.len()).map(|a|*a);
+
+        self.counter+=1;
+        a
+    }
+}
+
 impl Grid2D {
     pub fn from_str(map:Map)->Grid2D{
         let mut grid=Grid2D::new(map.dim);
@@ -306,15 +329,6 @@ impl Grid2D {
         (self.dim.x*self.dim.y) as usize
     }
 
-    ///Pick a random empty spot by shuffling all empty spots
-    ///and picking the first one.
-    pub fn pick_empty_spot(&self)->Option<Vec2<GridNum>>{
-        use rand::prelude::*;
-        let mut k:Vec<_>=Iterator2D::new(self.dim()).filter(|a|!self.get(*a)).collect();
-        let mut rng = rand::thread_rng();
-        k.shuffle(&mut rng);
-        k.first().map(|a|*a)
-    }
 
     ///Find the closest empty cell by inefficiently calculating the distance to every cell
     ///and then picking the cell with the smallest distance
