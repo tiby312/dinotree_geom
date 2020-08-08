@@ -288,6 +288,8 @@ impl Grid2D {
             for (x,c) in line.chars().enumerate(){
                 match c{
                     '█'=>{
+                        assert!(x<map.dim.x as usize,"x too big {}");
+                        assert!(y<map.dim.y as usize,"y too big {:?}",(x,y,map.dim));
                         grid.set(vec2(x,y).inner_as(),true);
                     },
                     ' '=>{
