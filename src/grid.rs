@@ -270,7 +270,7 @@ impl SpotPicker{
     ///Pick a random empty spot by shuffling all empty spots
     ///and picking the first one.
     pub fn pick_empty_spot(&mut self,grid:&Grid2D)->Option<Vec2<GridNum>>{
-        let mut k:Vec<_>=Iterator2D::new(grid.dim()).filter(|a|!grid.get(*a)).collect();
+        let k:Vec<_>=Iterator2D::new(grid.dim()).filter(|a|!grid.get(*a)).collect();
         
 
         let a=k.get(self.counter % k.len()).map(|a|*a);
