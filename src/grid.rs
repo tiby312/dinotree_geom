@@ -267,6 +267,8 @@ impl SpotPicker{
     pub fn new()->SpotPicker{
         SpotPicker{counter:0}
     }
+
+    /*
     ///Pick a random empty spot by shuffling all empty spots
     ///and picking the first one.
     pub fn pick_empty_spot(&mut self,grid:&Grid2D)->Option<Vec2<GridNum>>{
@@ -278,6 +280,7 @@ impl SpotPicker{
         self.counter+=1;
         a
     }
+    */
 }
 
 impl Grid2D {

@@ -381,7 +381,7 @@ impl BotSceneBuilder {
     }
 
     pub fn build_specialized<T>(&mut self, mut func: impl FnMut(&BotProp,Vec2<f32>) -> T) -> BotScene<T> {
-        let spiral = dists::spiral::Spiral::new([0.0, 0.0], self.radius, self.grow);
+        let spiral = dists::spiral_iter([0.0, 0.0], self.radius as f64, self.grow as f64);
 
         let bot_prop = BotProp {
             radius: Dist::new(self.bot_radius),
@@ -391,15 +391,15 @@ impl BotSceneBuilder {
             viscousity_coeff: 0.1,
         };
 
-        let bots: Vec<T> = spiral.take(self.num).map(|pos| func(&bot_prop,pos)).collect();
+        let bots: Vec<T> = spiral.take(self.num).map(|[x,y]| func(&bot_prop,vec2(x as f32,y as f32))).collect();
 
 
         BotScene { bot_prop, bots }
     }
     pub fn build(&mut self) -> BotScene<Bot> {
-        let spiral = dists::spiral::Spiral::new([0.0, 0.0], self.radius, self.grow);
+        let spiral = dists::spiral_iter([0.0, 0.0], self.radius as f64, self.grow as f64);
 
-        let bots: Vec<Bot> = spiral.take(self.num).map(|pos| Bot::new(pos)).collect();
+        let bots: Vec<Bot> = spiral.take(self.num).map(|[x,y]| Bot::new(vec2(x as f32,y as f32))).collect();
 
         let bot_prop = BotProp {
             radius: Dist::new(self.bot_radius),
