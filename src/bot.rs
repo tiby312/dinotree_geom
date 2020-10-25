@@ -323,6 +323,8 @@ impl Mouse {
     }
 }
 
+
+
 ///A struct with cached calculations based off of a radius.
 #[derive(Copy, Clone, Debug)]
 pub struct Dist {
@@ -331,6 +333,9 @@ pub struct Dist {
     dis2_squared: f32,
 }
 impl Dist {
+    pub const fn manual_create(dis:f32,dis2:f32,dis2_squared:f32)->Dist{
+        Dist{dis,dis2,dis2_squared}
+    }
     #[inline(always)]
     pub fn new(dis: f32) -> Dist {
         let k = dis * 2.0;
@@ -338,7 +343,7 @@ impl Dist {
         Dist {
             dis,
             dis2: k,
-            dis2_squared: k.powi(2),
+            dis2_squared: k*k,
             //radius_x_root_2_inv: radius * (1.0 / 1.4142),
         }
     }
