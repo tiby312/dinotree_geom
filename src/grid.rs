@@ -694,24 +694,12 @@ pub mod collide{
 
     }
     */
+
+    //TODO improve
     pub fn is_colliding2(walls:&Grid2D,dim:&GridViewPort,bot:Vec2<f32>,radius:f32)->[Option<(f32,CardDir,Vec2<f32>)>;2]{
-        unimplemented!()
-        /*
-        grid.get_option(bot);
-
-        //grid location of bot.
-        let k=dim.to_grid(bot);
         
-        if walls.get_option(k).filter(|a|a).is_some(){
-            //center of bot is in a wall
-        }
-
-        for (dir,cell) in adjecent_cells(k){
-            if walls.get_option(cell).filter(|a|a).is_some(){
-                
-            }
-        }
-        */
+        let rect=Rect::from_point(bot,vec2same(radius));
+        self::is_colliding(walls,dim,&rect,radius)
 
 
 
