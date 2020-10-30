@@ -689,7 +689,33 @@ pub mod collide{
             None
         }
     }
-    
+    /*
+    fn adjacent_cells(a:Vec<u16>)->impl Iterator<Item=(CardDir,Vec<u16>)>{
+
+    }
+    */
+    pub fn is_colliding2(walls:&Grid2D,dim:&GridViewPort,bot:Vec2<f32>,radius:f32)->[Option<(f32,CardDir,Vec2<f32>)>;2]{
+        unimplemented!()
+        /*
+        grid.get_option(bot);
+
+        //grid location of bot.
+        let k=dim.to_grid(bot);
+        
+        if walls.get_option(k).filter(|a|a).is_some(){
+            //center of bot is in a wall
+        }
+
+        for (dir,cell) in adjecent_cells(k){
+            if walls.get_option(cell).filter(|a|a).is_some(){
+                
+            }
+        }
+        */
+
+
+
+    }
     pub fn is_colliding(grid:&Grid2D,dim:&GridViewPort,bot:&Rect<f32>,radius:f32)->[Option<(f32,CardDir,Vec2<f32>)>;2]{
         let corners=bot.get_corners();
         let mut offsets:Vec<_>=corners.iter().map(|&a|{
