@@ -48,6 +48,9 @@ pub fn array2_inner_into<B: Copy, A: From<B>>(a: [B; 2]) -> [A; 2] {
 
 use core::convert::TryFrom;
 
+
+
+
 ///convert an array of elements of type B to type A.
 pub fn array2_inner_try_into<B: Copy, A: TryFrom<B>>(a: [B; 2]) -> Result<[A; 2], A::Error> {
     let x = A::try_from(a[0]);
