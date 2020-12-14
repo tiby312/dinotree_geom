@@ -20,7 +20,6 @@ pub mod grid;
 use axgeom::num_traits::Float;
 use axgeom::num_traits::NumAssign;
 use axgeom::num_traits::Zero;
-use axgeom::ordered_float::NotNan;
 use axgeom::vec2;
 use axgeom::Rect;
 use axgeom::Vec2;
@@ -30,14 +29,6 @@ use core::ops::Neg;
 pub trait MyNum: Zero + Copy + NumAssign + PartialOrd + Neg<Output = Self> {}
 impl<T: Zero + Copy + NumAssign + PartialOrd + Neg<Output = Self>> MyNum for T {}
 
-///NotNan f64
-pub type F64n = NotNan<f64>;
-///NotNan f64
-pub type F32n = NotNan<f32>;
-
-pub fn f32n(a: f32) -> F32n {
-    NotNan::new(a).unwrap()
-}
 
 ///convert an array of elements of type B to type A.
 pub fn array2_inner_into<B: Copy, A: From<B>>(a: [B; 2]) -> [A; 2] {

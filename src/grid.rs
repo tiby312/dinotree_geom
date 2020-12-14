@@ -306,29 +306,6 @@ pub struct Grid2D {
 }
 
 
-pub struct SpotPicker{
-    counter:usize
-}
-impl SpotPicker{
-    pub fn new()->SpotPicker{
-        SpotPicker{counter:0}
-    }
-
-    /*
-    ///Pick a random empty spot by shuffling all empty spots
-    ///and picking the first one.
-    pub fn pick_empty_spot(&mut self,grid:&Grid2D)->Option<Vec2<GridNum>>{
-        let k:Vec<_>=Iterator2D::new(grid.dim()).filter(|a|!grid.get(*a)).collect();
-        
-
-        let a=k.get(self.counter % k.len()).map(|a|*a);
-
-        self.counter+=1;
-        a
-    }
-    */
-}
-
 impl Grid2D {
     pub fn from_str(map:Map)->Grid2D{
         let mut grid=Grid2D::new(map.dim);

@@ -1,4 +1,3 @@
-use ordered_float::*;
 use axgeom::*;
 use dists;
 
@@ -28,10 +27,6 @@ impl BotProp {
         Rect::new(p.x - r, p.x + r, p.y - r, p.y + r)
     }
 
-    #[inline(always)]
-    pub fn create_bbox_nan(&self, pos: Vec2<f32>) -> Rect<NotNan<f32>> {
-        self.create_bbox(pos).inner_try_into().unwrap()
-    }
 
     #[inline(always)]
     pub fn liquid(&self, a: &mut Bot, b: &mut Bot) {
@@ -237,10 +232,7 @@ impl Bot {
         Rect::new(p.x - r, p.x + r, p.y - r, p.y + r)
     }
 
-    #[inline(always)]
-    pub fn create_bbox_nan(&self, bot_scene: &BotProp) -> Rect<NotNan<f32>> {
-        self.create_bbox(bot_scene).inner_try_into().unwrap()
-    }
+
 
     #[inline(always)]
     pub fn new(pos: Vec2<f32>) -> Bot {
