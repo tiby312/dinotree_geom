@@ -4,12 +4,9 @@
 #[macro_use]
 extern crate more_asserts;
 
-
 extern crate axgeom;
 
 pub use dists;
-
-
 
 ///2d grid library with the ability to the raycast to detect
 ///which cell a ray hits.
@@ -27,7 +24,6 @@ use core::ops::Neg;
 pub trait MyNum: Zero + Copy + NumAssign + PartialOrd + Neg<Output = Self> {}
 impl<T: Zero + Copy + NumAssign + PartialOrd + Neg<Output = Self>> MyNum for T {}
 
-
 ///convert an array of elements of type B to type A.
 pub fn array2_inner_into<B: Copy, A: From<B>>(a: [B; 2]) -> [A; 2] {
     let x = A::from(a[0]);
@@ -36,9 +32,6 @@ pub fn array2_inner_into<B: Copy, A: From<B>>(a: [B; 2]) -> [A; 2] {
 }
 
 use core::convert::TryFrom;
-
-
-
 
 ///convert an array of elements of type B to type A.
 pub fn array2_inner_try_into<B: Copy, A: TryFrom<B>>(a: [B; 2]) -> Result<[A; 2], A::Error> {
@@ -52,15 +45,14 @@ pub fn array2_inner_try_into<B: Copy, A: TryFrom<B>>(a: [B; 2]) -> Result<[A; 2]
     }
 }
 
-
 ///Returns the force to be exerted to the first object.
 ///The force to the second object can be retrieved simply by negating the first.
-pub fn gravitate<N:Float+MyNum >(
-    bots:[(Vec2<N>,N,&mut Vec2<N>);2],
+pub fn gravitate<N: Float + MyNum>(
+    bots: [(Vec2<N>, N, &mut Vec2<N>); 2],
     min: N,
     gravity_const: N,
 ) -> Result<(), ErrTooClose> {
-    let [(p1,m1,f1),(p2,m2,f2)]=bots;
+    let [(p1, m1, f1), (p2, m2, f2)] = bots;
 
     let diff = p2 - p1;
     let dis_sqr = diff.magnitude2();
@@ -73,8 +65,8 @@ pub fn gravitate<N:Float+MyNum >(
 
         let final_vec = diff * (force / dis);
 
-        *f1+=final_vec;
-        *f2-=final_vec;
+        *f1 += final_vec;
+        *f2 -= final_vec;
         Ok(())
     } else {
         Err(ErrTooClose)
@@ -85,14 +77,13 @@ pub fn gravitate<N:Float+MyNum >(
 pub struct ErrTooClose;
 
 ///Repel one object by simply not calling add_force on the other.
-pub fn repel_one<N:Float+MyNum>(
+pub fn repel_one<N: Float + MyNum>(
     pos1: Vec2<N>,
-    force_buffer:&mut Vec2<N>,
+    force_buffer: &mut Vec2<N>,
     pos2: Vec2<N>,
     closest: N,
     mag: N,
 ) -> Result<(), ErrTooClose> {
-
     let diff = pos2 - pos1;
 
     let len_sqr = diff.magnitude2();
@@ -106,18 +97,17 @@ pub fn repel_one<N:Float+MyNum>(
 
     let force = diff.normalize_to(mag);
 
-    *force_buffer-=force;
+    *force_buffer -= force;
 
     Ok(())
 }
 
-
-pub fn linear_push<N: Float+MyNum>(
-    bots:[(Vec2<N>,&mut Vec2<N>);2],
+pub fn linear_push<N: Float + MyNum>(
+    bots: [(Vec2<N>, &mut Vec2<N>); 2],
     closest: N,
     mag: N,
 ) -> Result<(), ErrTooClose> {
-    let [(bot1_pos,bot1_force_buffer),(bot2_pos,bot2_force_buffer)]=bots;
+    let [(bot1_pos, bot1_force_buffer), (bot2_pos, bot2_force_buffer)] = bots;
 
     let diff = bot2_pos - bot1_pos;
 
@@ -132,20 +122,20 @@ pub fn linear_push<N: Float+MyNum>(
 
     let force = diff.normalize_to(mag);
 
-    *bot1_force_buffer-=force;
-    *bot2_force_buffer+=force;
+    *bot1_force_buffer -= force;
+    *bot2_force_buffer += force;
 
     Ok(())
 }
 
 ///Repel two objects.
 ///First vector is position. Second vector is force buffer
-pub fn repel<N: Float+MyNum>(
-    bots:[(Vec2<N>,&mut Vec2<N>);2],
+pub fn repel<N: Float + MyNum>(
+    bots: [(Vec2<N>, &mut Vec2<N>); 2],
     closest: N,
     mag: N,
 ) -> Result<(), ErrTooClose> {
-    let [(bot1_pos,bot1_force_buffer),(bot2_pos,bot2_force_buffer)]=bots;
+    let [(bot1_pos, bot1_force_buffer), (bot2_pos, bot2_force_buffer)] = bots;
 
     let diff = bot2_pos - bot1_pos;
 
@@ -160,18 +150,16 @@ pub fn repel<N: Float+MyNum>(
 
     let force = diff.normalize_to(mag);
 
-    *bot1_force_buffer-=force;
-    *bot2_force_buffer+=force;
+    *bot1_force_buffer -= force;
+    *bot2_force_buffer += force;
 
     Ok(())
 }
 
-
-
 ///Collides and bounces an object with a border
-pub fn collide_with_border<N:MyNum>(
-    pos:&mut Vec2<N>,
-    vel:&mut Vec2<N>,
+pub fn collide_with_border<N: MyNum>(
+    pos: &mut Vec2<N>,
+    vel: &mut Vec2<N>,
     rect2: &axgeom::Rect<N>,
     drag: N,
 ) {
