@@ -9,8 +9,6 @@ extern crate axgeom;
 
 pub use dists;
 
-///2d bot library where a bot is a 2d particle with mass.
-pub mod bot;
 
 
 ///2d grid library with the ability to the raycast to detect
