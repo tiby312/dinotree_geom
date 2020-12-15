@@ -417,38 +417,6 @@ pub enum GridRayCastResult{
     NotFound
 }
 
-/*
-#[test]
-fn test_raycast(){
-    use crate::*;
-    use self::raycast::*;
-    
-    let grid_dim=vec2(16,9)*2;
-        
-    let mut grid=GridViewPort{origin:vec2(0.0,0.0),spacing:vec2(1920./grid_dim.x as f32,1080./grid_dim.y as f32)};
-
-    let point=grid.origin+vec2(grid.spacing.x,grid.spacing.y+0.5);
-
-
-    assert_eq!(grid.to_grid(point),vec2(1,1));
-
-    let ray=Ray{point,dir:vec2(1.0,0.0)};
-    let k=RayCaster::new(&grid,ray).unwrap().next().unwrap();
-    assert_eq!(grid.to_grid_mod(ray.point).x,0.0);
-    assert_eq!(k.tval,0.0);
-    assert_eq!(k.cell,vec2(2,1));
-
-    let ray=Ray{point,dir:vec2(-1.0,0.0)};
-    let k=RayCaster::new(&grid,ray).unwrap().next().unwrap();
-    
-    assert_eq!(grid.to_grid_mod(ray.point).x,0.0);
-    assert_eq!(k.tval,0.0);
-    assert_eq!(k.cell,vec2(1,1));
-
-}
-*/
-
-
 
 ///A way to cast a ray until it hits a cell
 pub mod raycast{
@@ -629,7 +597,7 @@ pub mod collide{
 
 
     #[derive(PartialEq,Copy,Clone,Debug)]
-    pub struct Foo{
+    struct Foo{
         pub grid:Vec2<GridNum>,
         pub dir:CardDir,
         pub normal:Vec2<f32>,
@@ -666,21 +634,7 @@ pub mod collide{
             None
         }
     }
-    /*
-    fn adjacent_cells(a:Vec<u16>)->impl Iterator<Item=(CardDir,Vec<u16>)>{
 
-    }
-    */
-
-    //TODO improve
-    pub fn is_colliding2(walls:&Grid2D,dim:&GridViewPort,bot:Vec2<f32>,radius:f32)->[Option<(f32,CardDir,Vec2<f32>)>;2]{
-        
-        let rect=Rect::from_point(bot,vec2same(radius));
-        self::is_colliding(walls,dim,&rect,radius)
-
-
-
-    }
     pub fn is_colliding(grid:&Grid2D,dim:&GridViewPort,bot:&Rect<f32>,radius:f32)->[Option<(f32,CardDir,Vec2<f32>)>;2]{
         let corners=bot.get_corners();
         let mut offsets:Vec<_>=corners.iter().map(|&a|{
@@ -744,39 +698,4 @@ pub mod collide{
 
         k
     }
-
-    /*
-    pub fn is_colliding(grid:&Grid2D,dim:&GridViewPort,bot:&Rect<f32>,radius:f32)->[Option<(f32,Vec2<f32>)>;2]{
-        
-        let corners=bot.get_corners();
-
-        let mut offsets:Vec<_>=corners.iter().map(|a|{
-            find_corner_offset(grid,dim,radius,a)
-        }).collect();
-
-        let mut offsets:Vec<_>=offsets.drain(..).filter(|a|a.is_some()).map(|a|a.unwrap()).collect();
-        offsets.sort_by(|(a,_),(b,_)|a.partial_cmp(b).unwrap());
-
-
-        let min=offsets.iter().min_by(|&(a,_),&(b,_)|a.partial_cmp(b).unwrap());
-
-
-        match min{
-            Some(&min)=>{
-                let second_min=offsets.iter().filter(|(_,a)|a!=&min.1).min_by(|&(a,_),&(b,_)|a.partial_cmp(b).unwrap());
-                match second_min{
-                    Some(&second_min)=>{
-                        [Some(min),Some(second_min)]
-                    },
-                    None=>{
-                        [Some(min),None]
-                    }
-                }
-            },
-            None=>{
-                [None,None]
-            }
-        }
-    }
-    */
 }
