@@ -348,8 +348,7 @@ pub enum GridRayCastResult {
 ///A way to cast a ray until it hits a cell
 pub mod raycast {
     use crate::grid::*;
-    use core::iter::*;
-
+    
     #[derive(Copy, Clone, Debug)]
     pub struct CollideCellEvent {
         //Cell colliding with

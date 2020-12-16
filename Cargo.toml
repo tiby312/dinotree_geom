@@ -11,7 +11,7 @@ edition = "2018"
 
 
 [dependencies]
-axgeom = {version="1.7"}
+axgeom = {version="1.9"}
 dists={git="https://github.com/tiby312/dists.git"}
 rand = "0.7.0"
 bit-vec = "0.6"
